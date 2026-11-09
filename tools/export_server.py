@@ -26,11 +26,19 @@ def main():
     target = ROOT / ("UnsupervisedAdultsMC-server-" + lock["pack_version"] + ".zip")
     with tempfile.TemporaryDirectory() as d:
         stage = Path(d)
+        failed_downloads = []
         for index, item in enumerate(entries, 1):
             print(f"[{index}/{len(entries)}] {item['name']}")
             dest = stage / item["path"]
-            core.download_verified(item["url"], dest, item["hashes"])
+            try:
+                core.download_verified(item["url"], dest, item["hashes"])
+            except (OSError, ValueError, TimeoutError) as exc:
+                if item.get("required", False):
+                    raise RuntimeError("Required server mod download failed: " + item["name"]) from exc
+                print("Optional server mod unavailable: " + item["name"] + ": " + str(exc))
+                failed_downloads.append({"name": item["name"], "reason": str(exc), "page": item["url"]})
         skipped = [x for x in lock.get("skipped", []) if x.get("side") in ("both", "server")]
+        skipped.extend(failed_downloads)
         report = "\n".join(x["name"] + " - " + x.get("reason", "") + "\n" + x.get("page", "") for x in skipped)
         (stage / "SERVER_README.txt").write_text(
             "Unsupervised Adults SMP - Fabric 1.21.1 mods\n"

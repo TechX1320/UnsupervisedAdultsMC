@@ -7,11 +7,9 @@ echo   UNSUPERVISED ADULTS MC - LOCAL WINDOWS BUILD
 echo ===============================================
 echo.
 where py >nul 2>nul
-if %ERRORLEVEL% EQU 0 (
-  set "PYCMD=py -3"
-) else (
+if errorlevel 1 (
   where python >nul 2>nul
-  if not %ERRORLEVEL% EQU 0 (
+  if errorlevel 1 (
     echo ERROR: Python 3.11 or newer is required.
     echo Download: https://www.python.org/downloads/windows/
     echo Remember to enable Add Python to PATH.
@@ -19,12 +17,17 @@ if %ERRORLEVEL% EQU 0 (
     exit /b 1
   )
   set "PYCMD=python"
+) else (
+  set "PYCMD=py -3"
 )
 if not exist ".venv\Scripts\python.exe" (
   echo Creating local build environment...
   %PYCMD% -m venv .venv
   if errorlevel 1 goto :error
 )
+echo Running launcher source tests...
+".venv\Scripts\python.exe" -m unittest discover -s tests -v
+if errorlevel 1 goto :error
 echo Installing PyInstaller into local venv...
 ".venv\Scripts\python.exe" -m pip install --disable-pip-version-check "pyinstaller>=6.15,<7"
 if errorlevel 1 goto :error

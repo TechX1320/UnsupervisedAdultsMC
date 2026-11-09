@@ -15,7 +15,7 @@ A **Windows launcher for the Unsupervised Adults Minecraft SMP**. Minecraft **1.
 
 ## Building locally on Windows
 
-1. Download/cl​one the repo, with GitHub Desktop or **Code → Download ZIP**, then extract it.
+1. Download/clone the repo, with GitHub Desktop or **Code → Download ZIP**, then extract it.
 2. Install [Python 3.11+](https://www.python.org/downloads/windows/). Check **Add Python to PATH** during setup.
 3. Double-click **`build.cmd`**. It creates `.venv`, installs PyInstaller there, and creates **`dist\UnsupervisedAdultsMC.exe`**.
 4. Send that one EXE to your friends. Initial execution downloads official verified Prism Launcher 11.1.1 into `%LOCALAPPDATA%\UnsupervisedAdultsMC\prism-bin`. It does **not** bundle/distribute Prism itself.
