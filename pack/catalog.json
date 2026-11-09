@@ -1,0 +1,325 @@
+{
+  "schema": 1,
+  "pack_version": "0.1.0-alpha",
+  "name": "Unsupervised Adults SMP",
+  "minecraft_version": "1.21.1",
+  "fabric_loader_version": "0.16.14",
+  "server_address": "",
+  "mods": [
+    {
+      "name": "Fabric API",
+      "slug": "fabric-api",
+      "type": "mod",
+      "side": "both",
+      "required": true
+    },
+    {
+      "name": "Mod Menu",
+      "slug": "modmenu",
+      "type": "mod",
+      "side": "client",
+      "required": false
+    },
+    {
+      "name": "Sodium",
+      "slug": "sodium",
+      "type": "mod",
+      "side": "client",
+      "required": true
+    },
+    {
+      "name": "Iris Shaders",
+      "slug": "iris",
+      "type": "mod",
+      "side": "client",
+      "required": true
+    },
+    {
+      "name": "Lithium",
+      "slug": "lithium",
+      "type": "mod",
+      "side": "both",
+      "required": true
+    },
+    {
+      "name": "FerriteCore",
+      "slug": "ferrite-core",
+      "type": "mod",
+      "side": "both",
+      "required": true
+    },
+    {
+      "name": "ImmediatelyFast",
+      "slug": "immediatelyfast",
+      "type": "mod",
+      "side": "client"
+    },
+    {
+      "name": "ScalableLux",
+      "slug": "scalablelux",
+      "type": "mod",
+      "side": "both"
+    },
+    {
+      "name": "Particle Core",
+      "slug": "particle-core",
+      "type": "mod",
+      "side": "client"
+    },
+    {
+      "name": "Fast Noise",
+      "slug": "zfastnoise",
+      "type": "mod",
+      "side": "both"
+    },
+    {
+      "name": "Visuality",
+      "slug": "visuality",
+      "type": "mod",
+      "side": "client"
+    },
+    {
+      "name": "AFK Cinematics",
+      "slug": "afk-cinematics",
+      "type": "mod",
+      "side": "client"
+    },
+    {
+      "name": "Cinematic Respawn",
+      "slug": "cinematic-respawn",
+      "type": "mod",
+      "side": "client"
+    },
+    {
+      "name": "Punchy!",
+      "slug": "punchy-fpa",
+      "type": "mod",
+      "side": "client"
+    },
+    {
+      "name": "Block Outline Customizer",
+      "slug": "block-outline-customizer",
+      "type": "mod",
+      "side": "client"
+    },
+    {
+      "name": "Zoomify",
+      "slug": "zoomify",
+      "type": "mod",
+      "side": "client"
+    },
+    {
+      "name": "3D Skin Layers",
+      "slug": "3dskinlayers",
+      "type": "mod",
+      "side": "client"
+    },
+    {
+      "name": "Cool Rain",
+      "slug": "coolrain",
+      "type": "mod",
+      "side": "client"
+    },
+    {
+      "name": "Particle Rain",
+      "slug": "particle-rain",
+      "type": "mod",
+      "side": "client"
+    },
+    {
+      "name": "Falling Leaves",
+      "slug": "fallingleaves",
+      "type": "mod",
+      "side": "client"
+    },
+    {
+      "name": "Smooth GUI",
+      "slug": "smooth-gui",
+      "type": "mod",
+      "side": "client"
+    },
+    {
+      "name": "Inventory Particles",
+      "slug": "inventory-particles",
+      "type": "mod",
+      "side": "client"
+    },
+    {
+      "name": "AmbientSounds",
+      "slug": "ambientsounds",
+      "type": "mod",
+      "side": "client"
+    },
+    {
+      "name": "Sounds",
+      "slug": "sound",
+      "type": "mod",
+      "side": "client"
+    },
+    {
+      "name": "Sound Physics Remastered",
+      "slug": "sound-physics-remastered",
+      "type": "mod",
+      "side": "client"
+    },
+    {
+      "name": "Pick Up Notifier",
+      "slug": "pick-up-notifier",
+      "type": "mod",
+      "side": "client"
+    },
+    {
+      "name": "Inventory Essentials",
+      "slug": "inventory-essentials",
+      "type": "mod",
+      "side": "client"
+    },
+    {
+      "name": "Easy Magic",
+      "slug": "easy-magic",
+      "type": "mod",
+      "side": "both"
+    },
+    {
+      "name": "Easy Anvils",
+      "slug": "easy-anvils",
+      "type": "mod",
+      "side": "both"
+    },
+    {
+      "name": "Balm",
+      "slug": "balm",
+      "type": "mod",
+      "side": "both"
+    },
+    {
+      "name": "Puzzles Lib",
+      "slug": "puzzles-lib",
+      "type": "mod",
+      "side": "both"
+    },
+    {
+      "name": "Forge Config API Port",
+      "slug": "forge-config-api-port",
+      "type": "mod",
+      "side": "both"
+    },
+    {
+      "name": "CreativeCore",
+      "slug": "creativecore",
+      "type": "mod",
+      "side": "both"
+    },
+    {
+      "name": "YetAnotherConfigLib",
+      "slug": "yacl",
+      "type": "mod",
+      "side": "client"
+    },
+    {
+      "name": "MidnightLib",
+      "slug": "midnightlib",
+      "type": "mod",
+      "side": "both"
+    },
+    {
+      "name": "MRU",
+      "slug": "mru",
+      "type": "mod",
+      "side": "client"
+    },
+    {
+      "name": "Distant Horizons (Voxy alternative)",
+      "slug": "distanthorizons",
+      "type": "mod",
+      "side": "client"
+    },
+    {
+      "name": "Solas Shaders",
+      "slug": "solas-shader",
+      "type": "shader",
+      "side": "client"
+    },
+    {
+      "name": "Fresh Animations",
+      "slug": "fresh-animations",
+      "type": "resourcepack",
+      "side": "client"
+    },
+    {
+      "name": "Fresh Animations Player Extension",
+      "slug": "fa-player-extension",
+      "type": "resourcepack",
+      "side": "client"
+    },
+    {
+      "name": "Entity Model Features",
+      "slug": "entity-model-features",
+      "type": "mod",
+      "side": "client"
+    },
+    {
+      "name": "Entity Texture Features",
+      "slug": "entitytexturefeatures",
+      "type": "mod",
+      "side": "client"
+    },
+    {
+      "name": "Better Crops",
+      "slug": "better-crops",
+      "type": "resourcepack",
+      "side": "client"
+    },
+    {
+      "name": "Better Than Mending",
+      "slug": "better-than-mending",
+      "type": "mod",
+      "side": "server"
+    },
+    {
+      "name": "Stack Refill",
+      "slug": "stack-refill",
+      "type": "mod",
+      "side": "server"
+    },
+    {
+      "name": "Visual Workbench (possible conflict with Cinematic Interactions)",
+      "slug": "visual-workbench",
+      "type": "mod",
+      "side": "both",
+      "enabled": false
+    },
+    {
+      "name": "Enhanced Block Entities (requires testing)",
+      "slug": "ebe-reloaded",
+      "type": "mod",
+      "side": "client",
+      "enabled": false
+    },
+    {
+      "name": "Voxy (no official 1.21.1)",
+      "slug": "voxy",
+      "type": "mod",
+      "side": "client",
+      "enabled": false
+    },
+    {
+      "name": "Cinematic Interactions (CurseForge-only)",
+      "source": "manual",
+      "type": "mod",
+      "side": "both",
+      "page": "https://www.curseforge.com/minecraft/mc-mods/cinematic-interactions/files/9345417",
+      "reason": "Requires a permitted direct file URL or manual installation"
+    },
+    {
+      "name": "EggMorph (experimental)",
+      "source": "direct",
+      "type": "mod",
+      "side": "both",
+      "required": false,
+      "url": "https://github.com/TechX1320/EggMorph/releases/download/v0.2.0-alpha.1/eggmorph-0.2.0-alpha.jar",
+      "sha256": "e795e5693bcb49aeb1a195aeaa25a4838a4587c69248b353831136cc1072c590",
+      "note": "The EggMorph GitHub repository is private. This optional download will start working once the release is made public."
+    }
+  ]
+}
