@@ -1,85 +1,75 @@
 # Unsupervised Adults MC
 
-A **Windows launcher for the Unsupervised Adults Minecraft SMP**. Minecraft **1.21.1**, Fabric, and the agreed mod list. Built locally; **no GitHub Actions, Docker, hosting panel access, or Java programming required**.
+**All-in-one Windows launcher for the Unsupervised Adults SMP**, Minecraft **Java 1.21.1 + Fabric**. This is *our own launcher*: **no Prism, CurseForge application, Modrinth application, stock Minecraft launcher, or other executable launcher is installed**. Uses the [minecraft-launcher-lib](https://github.com/JakobDev/minecraft-launcher-lib) BSD-licensed Python *library* to communicate with official Minecraft services. The launcher itself packages all Python dependencies into one `.exe`.
 
-**Status: early alpha / not yet tested on a real Windows machine.** The source and Python tests work, but the Prism download/bootstrap and actual Minecraft launch need a Windows playtest before distributing to friends.
+**Status: 0.2 development alpha. Unit-tested but not yet tested end-to-end on Windows/Minecraft.** Always test with a throwaway world and an approved account before distributing to friends.
 
 ## What friends do
 
-1. Download **`UnsupervisedAdultsMC.exe`** from you (after you build it).
-2. Launch it. The first time, click **MICROSOFT LOGIN** and sign into their *own purchased Minecraft Java Edition* account through official Prism Launcher.
-3. Enter the SMP server address (once, if the pack owner has not configured it), then click **PLAY SMP**.
-4. The launcher checks GitHub for the pinned modpack, downloads or repairs compatible mods, and launches the Fabric 1.21.1 instance. Later: **PLAY SMP** again for updates.
+1. Download **`UnsupervisedAdultsMC.exe`** from you. No Python, separate Java, Fabric installer, Prism, or third-party Minecraft launcher needed.
+2. Double-click **PLAY SMP**. On first launch, Microsoft sign-in opens in their normal browser and returns automatically to the app. This requires a valid purchased **Minecraft Java Edition** account.
+3. The app fetches the pinned modpack, downloads official Minecraft game files, its Java runtime, Fabric, mods, shaders and resources, then launches Minecraft directly (and connects to the configured SMP).
+4. Next time: click **PLAY SMP** again; files are verified, changed mods download automatically, and the remembered Microsoft account is refreshed.
 
-**No one needs Crafty access.** Authentication uses Prism/Microsoft (this program neither collects nor stores Microsoft passwords/tokens). The SMP should have `online-mode=true`, `white-list=true`, and `enforce-whitelist=true`.
+**Players never need Crafty access.** The server must still use `online-mode=true`, `white-list=true`, `enforce-whitelist=true`, and you add approved users using `whitelist add MinecraftUsername`.
 
-## Building locally on Windows
+## Owner: Microsoft login setup — REQUIRED
 
-1. Download/clone the repo, with GitHub Desktop or **Code → Download ZIP**, then extract it.
-2. Install [Python 3.11+](https://www.python.org/downloads/windows/). Check **Add Python to PATH** during setup.
-3. Double-click **`build.cmd`**. It creates `.venv`, installs PyInstaller there, and creates **`dist\UnsupervisedAdultsMC.exe`**.
-4. Send that one EXE to your friends. Initial execution downloads official verified Prism Launcher 11.1.1 into `%LOCALAPPDATA%\UnsupervisedAdultsMC\prism-bin`. It does **not** bundle/distribute Prism itself.
+Microsoft does **not** permit arbitrary custom launchers to impersonate the official Minecraft launcher. The owner must configure an Azure public-client application and request Minecraft API approval. Without a permitted Microsoft App ID, **the launcher can install files, but cannot log in or start online-mode Minecraft**. We intentionally don't ship borrowed or unofficial client IDs.
 
-The EXE needs internet access, but players do **not** need Python after you build it. Because this local build is unsigned, Windows SmartScreen may ask about an unknown publisher. Only share trusted builds; source is in this repository.
+1. Follow [Microsoft's desktop app registration instructions](https://learn.microsoft.com/en-us/entra/identity-platform/scenario-desktop-app-registration). Register a personal-account-compatible **public client** application. Under **Authentication → Mobile and desktop applications**, add `http://localhost` as the loopback redirect URI. Allow public client flows. **Do not create or distribute a client secret.**
+2. Request Minecraft API access for your new application through [Minecraft's application approval instructions](https://help.minecraft.net/hc/en-us/articles/16254801392141). You may need to wait for approval, and access is not guaranteed.
+3. Copy the **Application (client) ID** (a UUID) into `pack/catalog.json` as `microsoft_client_id` and commit it to `main`. **The client ID is public, not a password.** Do not commit any tokens or secrets.
+4. Test **SIGN IN WITH MICROSOFT** on your own Windows account. If you get an API permission error, confirm the app is approved; it isn't a missing launcher feature.
 
-## Your modpack updates (the owner workflow)
+Sign-in uses PKCE and `state`, with a temporary local-only callback on an available port. Browser passwords are never shown to the launcher. Refresh tokens are stored under your Windows user profile using Windows **DPAPI** encryption and never committed to GitHub. Sign-in is personal to each friend.
 
-**`pack/catalog.json`** is the human-edited mod list: name, Modrinth project slug, client/server side, resource pack/shader/mod type, and whether to include it.
+## Build locally on Windows
 
-1. Edit `pack/catalog.json` to add, disable, or remove mods. Increase **`pack_version`** for changed packs.
-2. Run **`update_pack.cmd`**. It resolves published versions compatible with **Minecraft 1.21.1 Fabric**, recursively includes required dependencies, and generates **`pack/pack-lock.json`** plus `pack/resolution-report.txt`.
-3. Review `pack/resolution-report.txt` for unavailable/restricted mods. Fix the catalog or choose an alternative.
-4. Commit `pack/catalog.json` **and** `pack/pack-lock.json` to this repository's **`main`** branch. No recompiling and no GitHub Actions needed.
-5. Friends' launchers fetch the new lock the next time they click **PLAY SMP**, download only changed files, verify checksums and clean up only previously launcher-managed files. Their own worlds, saves, screenshots, options and other unmanaged files are not touched.
+1. Use **Code → Download ZIP** in this repo, unzip, and install [Python 3.11+](https://www.python.org/downloads/windows/) **on your build PC only** (check *Add Python to PATH*).
+2. Double-click **`build.cmd`**. It creates `.venv`, installs pinned build dependencies, runs unit tests, and uses PyInstaller to create **`dist\UnsupervisedAdultsMC.exe`**.
+3. Share that **one `.exe`** with friends. This is an unsigned personal build, so Windows SmartScreen may warn about an unknown publisher. You can code-sign it later.
 
-If `pack-lock.json` has not been published, the launcher can still query Modrinth directly and cache compatible files, but **different players might resolve different mod versions**. Generate and commit a lock file before inviting friends.
+There are **no GitHub Actions workflows** and no hosted launcher infrastructure required. The EXE auto-downloads Minecraft's official assets when first opened; it does not redistribute the proprietary Minecraft game inside the binary.
 
-## For your Crafty server
+## Owner: modpack updates
 
-Run **`export_server_pack.cmd`** *after* `update_pack.cmd`. It makes a ZIP of only **server** and **both**-side mod JARs from the same pinned versions, with a report of any missing mods. Install a Fabric 1.21.1 server in Crafty, stop it, back it up, then upload the extracted mod JARs to the server's `mods` folder. The ZIP is *not* a standalone Fabric server installation.
+- Edit `pack/catalog.json`: compatible mods, `side=client/server/both`, shader/resourcepack type, and `enabled` flag. Increase `pack_version` when modifying the pack.
+- Run **`update_pack.cmd`**; it checks the Modrinth API for **1.21.1 + Fabric**, resolves required dependencies and creates `pack/pack-lock.json` plus an unresolved-mod report.
+- Review the report, then commit `pack/catalog.json` and `pack/pack-lock.json` to **main**. Friend launchers read this lock on Play, download only changed files, verify SHA hashes, and remove only files they themselves previously installed. Their personal settings, worlds and screenshots remain untouched.
+- `export_server_pack.cmd` prepares the same pinned `server`+`both` mod JARs for Crafty. It **does not** install Fabric on the Debian server; configure that inside Crafty separately.
 
-For `server.properties`:
+**Publish a lock before inviting friends**. Until it exists, the launcher can resolve the catalog dynamically, but different players may select different releases.
 
-```properties
-online-mode=true
-white-list=true
-enforce-whitelist=true
-```
+## Current modpack limitations
 
-Add approved users in the Crafty console with `whitelist add MinecraftUsername`. The launcher's direct-connect button is convenient but does not conceal your server address from scanners.
+- Mods hosted on **Modrinth** with a compatible Fabric 1.21.1 file can be fetched by the launcher; some authors publish only on CurseForge or block direct downloads. These are **reported as missing**, not silently pirated or rehosted.
+- **Cinematic Interactions** is currently marked manual. Request a permitted direct URL or a compatible alternative.
+- **EggMorph** is referenced as an optional direct GitHub release, but its repository is **private**; friends cannot download it until it becomes accessible. It is experimental and not ready for a production SMP.
+- **Voxy** is disabled because there is no official 1.21.1 release. **Distant Horizons** is a possible alternative, but test it alongside shaders.
+- Shaders and resource packs are downloaded, **not forced on**; people with weaker PCs can use their own video settings. Visual Workbench and EBE Reloaded are disabled pending tests.
+- The EXE **updates the modpack**, not its own binary. For launcher software updates, rebuild with `build.cmd` and send a new EXE.
 
-## Limits and caveats
+## Local game files
 
-- **Most mods and resource packs** use [Modrinth's public API](https://docs.modrinth.com/api/) and official CDN downloads. Files are pinned and verified by SHA before installation. Each request has an identifying User-Agent. Mod version compatibility is based on published metadata; **visual conflicts still require actual testing**.
-- **CurseForge-only files** may be blocked from automated downloads without permission or a suitable API/integration. The current catalog marks **Cinematic Interactions** for manual handling. Do not redistribute someone else's mod JAR just to bypass download restrictions. Ask for a redistributable/authorized download URL when possible.
-- **EggMorph v0.2 alpha** is referenced by a pinned release URL and SHA256, but **the EggMorph repository is currently private**. That means friends cannot download it until you publish an accessible release. It is an optional download for the initial launcher preview and will be reported as unavailable instead of stopping the entire install. Publish it before using it on the actual SMP. EggMorph itself is not gameplay-complete.
-- **Voxy** has no official Minecraft 1.21.1 Fabric release; the catalog disables Voxy and enables Distant Horizons as a candidate alternative.
-- **Visual Workbench** and **Enhanced Block Entities Reloaded** are disabled pending compatibility testing. Shaders/resource packs are downloaded but **not force-enabled**; friends can choose their visual settings.
-- This is an **auto-updating modpack**, not yet a self-updating launcher binary. When the launcher program changes, build and share a new EXE.
-- Client only installs `client` and `both` modules. Dedicated server only gets `server` and `both`. Do not put client rendering/shader mods into Crafty.
-- Supports Windows 10/11 64-bit for this alpha. Tested with Python unit tests; **no in-game Windows test has yet been run**.
+The isolated Minecraft installation lives at `%LOCALAPPDATA%\UnsupervisedAdultsMC\instance\.minecraft`; it does not modify the player's official `.minecraft`. Cached account credentials are protected in `%LOCALAPPDATA%\UnsupervisedAdultsMC\account.dpapi`. The latest Minecraft process log is `logs\latest-game.log` (tokens and launch arguments are not recorded by our code). The launcher downloads game files from Mojang/Fabric and mod files from checksum-verified allowlisted hosts.
 
-## Source layout
+## Source structure
 
 ```
-build.cmd                 Build the EXE locally
-update_pack.cmd           Pin exact versions for the group
-export_server_pack.cmd    Create Crafty server mods ZIP
-launcher.py               Windows desktop UI
-ua_core.py                Network/API/update/Prism logic
-pack/catalog.json         Mod list
-pack/pack-lock.json       Generated by owner, commit to main
-pack/resolution-report.txt Generated warnings for review
-tools/                    Pack maintenance
- tests/                   Unit tests
+launcher.py                  Tkinter desktop interface
+ua_auth.py                   Microsoft OAuth PKCE, login refresh, encrypted token storage
+ua_minecraft.py              Vanilla/Java/Fabric installer and direct game launch
+ua_core.py                   Verified modpack resolver/updater, app folders
+build.cmd                    Owner's local Windows EXE build
+requirements-build.txt       Pinned Minecraft/PyInstaller build libraries
+update_pack.cmd              Generate a reproducible modpack lock
+export_server_pack.cmd       Generate server mods ZIP for Crafty
+pack/catalog.json            Modpack catalog + public Azure client ID
+pack/pack-lock.json          Generated/committed pinned version manifest
+tests/                      Mocked tests (no Microsoft login required)
 ```
 
-## Security and privacy
+## License and acknowledgments
 
-The only executable game launcher provisioned is the **official [Prism Launcher](https://prismlauncher.org/)** portable build, downloaded from its official GitHub release, pinned to a known SHA256 digest. Minecraft files are downloaded by Prism. Mod downloads are HTTPS from Modrinth's CDN or explicit GitHub Releases with checksums; unexpected mod file hosts and redirects are blocked. No offline-mode authentication and no password collection.
-
-Launcher settings and installed files are under `%LOCALAPPDATA%\UnsupervisedAdultsMC`; you can uninstall by removing that folder after backing up any saves. GitHub and Modrinth must be reachable for first-time setup and pack updates.
-
-### Acknowledgments
-
-Uses official Prism Launcher as an independently distributed program, under its own terms and licenses. Does not embed or claim ownership of Prism, Minecraft, or the listed third-party mods. All respective authors retain ownership of their files and releases.
+Our launcher project is provided as-is for hobby SMP use. Uses [minecraft-launcher-lib](https://github.com/JakobDev/minecraft-launcher-lib) (BSD-2-Clause), [PyInstaller](https://pyinstaller.org/), official Microsoft Minecraft services, and third-party mod authors' downloads according to their terms. It is **not** affiliated with Mojang or Microsoft and does not circumvent Minecraft ownership or server authentication.

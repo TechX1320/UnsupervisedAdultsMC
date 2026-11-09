@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "pack_version": "0.1.0-alpha",
+  "pack_version": "0.2.0-alpha",
   "name": "Unsupervised Adults SMP",
   "minecraft_version": "1.21.1",
   "fabric_loader_version": "0.16.14",
@@ -321,5 +321,6 @@
       "sha256": "e795e5693bcb49aeb1a195aeaa25a4838a4587c69248b353831136cc1072c590",
       "note": "The EggMorph GitHub repository is private. This optional download will start working once the release is made public."
     }
-  ]
+  ],
+  "microsoft_client_id": ""
 }

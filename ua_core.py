@@ -1,7 +1,7 @@
-"""Network, pack-resolution, update, and Prism instance helpers.
+"""Verified modpack downloads and isolated SMP instance storage.
 
-Standard-library only so this can run both in development and in the frozen launcher.
-Does not handle Microsoft credentials: official Prism Launcher does that.
+Pure standard library; Minecraft bootstrap/login is implemented in ua_minecraft
+and ua_auth. No external launcher application is required.
 """
 from __future__ import annotations
 
@@ -21,9 +21,7 @@ import zipfile
 LAUNCHER_NAME = "Unsupervised Adults SMP"
 PACK_ID = "UnsupervisedAdultsSMP"
 REPO_ROOT = "https://raw.githubusercontent.com/TechX1320/UnsupervisedAdultsMC/main/pack/"
-PRISM_URL = "https://github.com/PrismLauncher/PrismLauncher/releases/download/11.1.1/PrismLauncher-Windows-MinGW-w64-Portable-11.1.1.zip"
-PRISM_SHA256 = "05841d0b3bfc0a8212658457cc6035e1c29cd7ffae919464e874e384cbe8d062"
-UA = "TechX1320/UnsupervisedAdultsMC/0.1 (+https://github.com/TechX1320/UnsupervisedAdultsMC)"
+UA = "TechX1320/UnsupervisedAdultsMC/0.2 (+https://github.com/TechX1320/UnsupervisedAdultsMC)"
 FOLDERS = {"mod": "mods", "resourcepack": "resourcepacks", "shader": "shaderpacks"}
 FILE_EXT = {"mod": (".jar",), "resourcepack": (".zip",), "shader": (".zip",)}
 
@@ -340,64 +338,15 @@ def download_verified(url: str, dest: Path, hashes: dict, status=print, max_byte
         tmp.unlink(missing_ok=True)
 
 
-def prism_exe(prism_dir: Path) -> Path | None:
-    if not prism_dir.is_dir():
-        return None
-    for candidate in prism_dir.rglob("prismlauncher.exe"):
-        if candidate.is_file() and candidate.name.lower() == "prismlauncher.exe":
-            return candidate
-    return None
-
-
-def ensure_prism(root: Path, status=print) -> Path:
-    prism = root / "prism-bin"
-    found = prism_exe(prism)
-    if found:
-        return found
-    status("Downloading official Prism Launcher portable 11.1.1 (about 44 MB)...")
-    root.mkdir(parents=True, exist_ok=True)
-    archive = root / "prism-11.1.1.zip"
-    download_verified(PRISM_URL, archive, {"sha256": PRISM_SHA256}, status, max_bytes=100*1024*1024)
-    staging = root / "prism-extract.tmp"
-    shutil.rmtree(staging, ignore_errors=True)
-    staging.mkdir(parents=True, exist_ok=True)
-    try:
-        with zipfile.ZipFile(archive) as bundle:
-            for item in bundle.infolist():
-                dest = (staging / item.filename).resolve()
-                if not dest.is_relative_to(staging.resolve()):
-                    raise ValueError("Prism archive contains an unsafe path")
-                if item.file_size > 300 * 1024 * 1024:
-                    raise ValueError("Prism archive entry is unexpectedly large")
-            bundle.extractall(staging)
-        if prism_exe(staging) is None:
-            raise ValueError("Prism archive does not contain prismlauncher.exe")
-        staging.replace(prism)
-    finally:
-        archive.unlink(missing_ok=True)
-        shutil.rmtree(staging, ignore_errors=True)
-    found = prism_exe(prism)
-    if found is None:
-        raise RuntimeError("Prism executable missing after extracting")
-    status("Prism Launcher installed and verified.")
-    return found
-
-
 def ensure_instance(root: Path, catalog: dict) -> Path:
-    instance = root / "prism-data" / "instances" / PACK_ID
-    instance.mkdir(parents=True, exist_ok=True)
-    cfg = instance / "instance.cfg"
-    pack = instance / "mmc-pack.json"
-    if not cfg.exists():
-        cfg.write_text("[General]\nConfigVersion=1.2\nInstanceType=OneSix\nname=Unsupervised Adults SMP\niconKey=default\n", encoding="utf-8")
-    if not pack.exists():
-        pack.write_text(json.dumps({
-            "formatVersion": 1,
-            "components": [
-                {"uid": "net.minecraft", "version": catalog["minecraft_version"], "important": True},
-                {"uid": "net.fabricmc.fabric-loader", "version": catalog["fabric_loader_version"]}
-            ]}, indent=2) + "\n", encoding="utf-8")
-    (instance / ".minecraft").mkdir(exist_ok=True)
+    """Create a fully isolated launcher-owned game folder; preserve personal settings.
+
+    The Minecraft library installs versions, assets, libraries and Java under
+    instance/.minecraft. We never modify the user's vanilla .minecraft folder.
+    """
+    check_catalog(catalog)
+    instance = root / "instance"
+    (instance / ".minecraft").mkdir(parents=True, exist_ok=True)
     return instance
 
 
