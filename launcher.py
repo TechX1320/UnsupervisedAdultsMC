@@ -32,12 +32,25 @@ class Launcher:
     def __init__(self):
         self.app_dir = core.app_root()
         self.settings_path = self.app_dir / "settings.json"
-        self.app_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            self.app_dir.mkdir(parents=True, exist_ok=True)
+            testfile = self.app_dir / ".ua-write-test"
+            testfile.write_bytes(b"ok")
+            testfile.unlink()
+        except OSError as exc:
+            error_window = tk.Tk()
+            error_window.withdraw()
+            messagebox.showerror("Unsupervised Adults MC - Storage", 
+                "The launcher's folder is not writable. Move the EXE to a folder such as "
+                "D:\\Games\\UnsupervisedAdultsMC and run it there.\n\n" + str(exc))
+            error_window.destroy()
+            raise SystemExit(1) from exc
         self.settings = self._load_settings()
         self.events = queue.Queue()
         self.busy = False
         self._session = None
         self._session_at = 0.0
+        self._device_dialog = None
         self.window = tk.Tk()
         self.window.title("Unsupervised Adults MC")
         self.window.geometry("900x625")
@@ -171,8 +184,14 @@ class Launcher:
                 elif kind == "progress":
                     self.bar["value"] = min(100, max(0, value * 100))
                 elif kind == "account":
+                    self._close_device_dialog()
                     self.account_var.set("SIGNED IN: " + value)
+                elif kind == "device":
+                    self._show_device_dialog(*value)
+                elif kind == "close_device":
+                    self._close_device_dialog()
                 elif kind == "error":
+                    self._close_device_dialog()
                     self.status_var.set("ACTION FAILED — SEE MESSAGE")
                     self.log("ERROR: " + value)
                     messagebox.showerror("Unsupervised Adults MC", value)
@@ -185,6 +204,49 @@ class Launcher:
         except queue.Empty:
             pass
         self.window.after(100, self._pump)
+
+    def _close_device_dialog(self):
+        if self._device_dialog is not None:
+            try:
+                self._device_dialog.destroy()
+            except tk.TclError:
+                pass
+            self._device_dialog = None
+
+    def _show_device_dialog(self, url: str, code: str):
+        self._close_device_dialog()
+        dialog = tk.Toplevel(self.window)
+        self._device_dialog = dialog
+        dialog.title("Sign in with Microsoft")
+        dialog.geometry("480x290")
+        dialog.resizable(False, False)
+        dialog.configure(bg=PANEL)
+        dialog.transient(self.window)
+        dialog.grab_set()
+        tk.Label(dialog, text="MICROSOFT SIGN-IN", fg=TEXT, bg=PANEL,
+                 font=("Segoe UI", 17, "bold")).pack(pady=(23, 7))
+        tk.Label(dialog, text="Open the link, sign in, then enter this code:",
+                 fg=MUTED, bg=PANEL, font=("Segoe UI", 10)).pack()
+        code_entry = tk.Entry(dialog, justify="center", font=("Consolas", 20, "bold"),
+                              fg=BLUE, bg=PANEL_ALT, relief=tk.FLAT, width=18)
+        code_entry.insert(0, code)
+        code_entry.configure(state="readonly")
+        code_entry.pack(pady=15)
+        def copy_code():
+            dialog.clipboard_clear()
+            dialog.clipboard_append(code)
+            dialog.update_idletasks()
+        buttons = tk.Frame(dialog, bg=PANEL)
+        buttons.pack()
+        tk.Button(buttons, text="OPEN MICROSOFT", command=lambda: webbrowser.open(url),
+                  bg=PURPLE, fg="#140c22", relief=tk.FLAT, padx=14, pady=9).pack(side=tk.LEFT, padx=7)
+        tk.Button(buttons, text="COPY CODE", command=copy_code,
+                  bg=PANEL_ALT, fg=TEXT, relief=tk.FLAT, padx=14, pady=9).pack(side=tk.LEFT, padx=7)
+        tk.Label(dialog, text=url, fg=BLUE, bg=PANEL,
+                 font=("Segoe UI", 9)).pack(pady=(16, 5))
+        tk.Label(dialog, text="Leave this window open while you sign in.",
+                 fg=MUTED, bg=PANEL, font=("Segoe UI", 9)).pack()
+        webbrowser.open(url)
 
     def _run(self, task):
         if self.busy:
@@ -206,7 +268,14 @@ class Launcher:
 
     def _login(self, catalog: dict) -> dict:
         client_id = auth.require_client_id(catalog)
-        session = auth.microsoft_login(client_id, lambda s: self._emit("log", s))
+        try:
+            session = auth.microsoft_device_login(
+                client_id, lambda s: self._emit("log", s),
+                lambda url, code: self._emit("device", (url, code)))
+        except auth.DeviceCodeUnavailable:
+            self._emit("close_device")
+            self._emit("log", "Microsoft requires browser sign-in for this app. Opening browser...")
+            session = auth.microsoft_login(client_id, lambda s: self._emit("log", s))
         auth.save_account(self.app_dir, session)
         self._session = session
         self._session_at = time.monotonic()

@@ -38,9 +38,10 @@ def require_client_id(catalog: dict) -> str:
     client_id = str(catalog.get("microsoft_client_id", "")).strip()
     if not is_valid_client_id(client_id):
         raise AuthenticationError(
-            "Microsoft sign-in has not been configured by the modpack owner. "
-            "Set microsoft_client_id in pack/catalog.json to an approved Azure public-client App ID. "
-            "See README.md -> Microsoft login setup."
+            "Launcher owner setup is required: microsoft_client_id is empty in the "
+            "published pack catalog. Register a Microsoft public-client app, place "
+            "its Application (client) ID in pack/catalog.json, and publish it. "
+            "Minecraft Services may require separate application approval."
         )
     return client_id
 
@@ -192,3 +193,110 @@ def refresh_account(root: Path, client_id: str) -> dict:
         raise AuthenticationError("Microsoft session expired. Please sign in again.") from exc
     save_account(root, session)
     return session
+
+
+class DeviceCodeUnavailable(AuthenticationError):
+    """Device login is disabled for this Microsoft application; PKCE may work."""
+
+
+def _microsoft_form(url: str, params: dict) -> dict:
+    """POST only to the fixed Microsoft OAuth endpoint (never to a supplied URL)."""
+    from urllib.request import Request, urlopen
+    from urllib.error import HTTPError, URLError
+    body = urllib.parse.urlencode(params).encode("utf-8")
+    req = Request(url, data=body, headers={
+        "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"})
+    try:
+        with urlopen(req, timeout=30) as response:
+            return json.load(response)
+    except HTTPError as exc:
+        try:
+            return json.loads(exc.read(8192).decode("utf-8"))
+        except (ValueError, UnicodeDecodeError) as parse_exc:
+            raise AuthenticationError(f"Microsoft sign-in service returned HTTP {exc.code}") from parse_exc
+    except (URLError, TimeoutError) as exc:
+        raise AuthenticationError("Could not contact Microsoft sign-in; check your internet connection") from exc
+
+
+def _minecraft_session(ms_token: dict) -> dict:
+    """Use Microsoft's access token to authenticate through Xbox and Minecraft."""
+    import minecraft_launcher_lib as lib
+    token = ms_token.get("access_token", "")
+    refresh = ms_token.get("refresh_token", "")
+    if not token or not refresh:
+        raise AuthenticationError("Microsoft did not return a complete sign-in session")
+    try:
+        xbl = lib.microsoft_account.authenticate_with_xbl(token)
+        xsts = lib.microsoft_account.authenticate_with_xsts(xbl["Token"])
+        userhash = xbl["DisplayClaims"]["xui"][0]["uhs"]
+        mc = lib.microsoft_account.authenticate_with_minecraft(userhash, xsts["Token"])
+        mc_token = mc.get("access_token")
+        if not mc_token:
+            raise AuthenticationError(
+                "Minecraft Services rejected this launcher. Microsoft's separate Minecraft "
+                "application approval may be required for the launcher client ID.")
+        profile = lib.microsoft_account.get_profile(mc_token)
+        if profile.get("error") or not profile.get("id") or not profile.get("name"):
+            raise AuthenticationError("This Microsoft account does not have a usable Minecraft Java Edition profile")
+        return {**profile, "access_token": mc_token, "refresh_token": refresh}
+    except AuthenticationError:
+        raise
+    except (KeyError, IndexError, TypeError) as exc:
+        raise AuthenticationError("Microsoft/Xbox authentication returned incomplete account data") from exc
+
+
+def microsoft_device_login(client_id: str, status=print, show_code=None,
+                           *, post=_microsoft_form, sleep=time.sleep,
+                           clock=time.monotonic) -> dict:
+    """Display a Microsoft device code; user signs in using their normal browser.
+
+    This uses no hosted API or client secret. The registered public app client ID
+    remains mandatory, and Minecraft Services may independently require approval.
+    """
+    if not is_valid_client_id(client_id):
+        raise AuthenticationError("Launcher owner must configure a valid Microsoft application ID")
+    base = "https://login.microsoftonline.com/consumers/oauth2/v2.0/"
+    init = post(base + "devicecode", {
+        "client_id": client_id, "scope": "XboxLive.signin offline_access"})
+    if init.get("error"):
+        code = init["error"]
+        if code in ("unauthorized_client", "unsupported_grant_type", "invalid_request"):
+            raise DeviceCodeUnavailable("Microsoft device-code sign-in is unavailable for this application")
+        raise AuthenticationError("Microsoft device sign-in failed: " + str(code)[:120])
+    try:
+        uri = init["verification_uri"]
+        code = init["user_code"]
+        device = init["device_code"]
+        interval = max(5, min(int(init.get("interval", 5)), 60))
+        expires = max(1, min(int(init["expires_in"]), 1800))
+    except (KeyError, ValueError, TypeError) as exc:
+        raise AuthenticationError("Microsoft did not return a usable sign-in code") from exc
+    host = urllib.parse.urlsplit(uri).hostname
+    if not (uri.startswith("https://") and host in ("microsoft.com", "www.microsoft.com", "login.microsoftonline.com")):
+        raise AuthenticationError("Microsoft supplied an unexpected verification link")
+    status(f"Open {uri} and enter code: {code}")
+    if show_code:
+        show_code(uri, code)
+    deadline = clock() + expires
+    while clock() < deadline:
+        sleep(min(interval, max(0, deadline - clock())))
+        reply = post(base + "token", {
+            "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+            "client_id": client_id,
+            "device_code": device,
+        })
+        error = reply.get("error")
+        if error == "authorization_pending":
+            continue
+        if error == "slow_down":
+            interval = min(interval + 5, 60)
+            continue
+        if error in ("authorization_declined", "access_denied"):
+            raise AuthenticationError("Microsoft sign-in was declined")
+        if error in ("expired_token", "bad_verification_code"):
+            raise AuthenticationError("The Microsoft sign-in code expired; start sign-in again")
+        if error:
+            raise AuthenticationError("Microsoft sign-in failed: " + str(error)[:120])
+        status("Microsoft authorized. Checking Minecraft Java account...")
+        return _minecraft_session(reply)
+    raise AuthenticationError("The Microsoft verification code expired; click Sign In for a new code")

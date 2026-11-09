@@ -27,7 +27,10 @@ FILE_EXT = {"mod": (".jar",), "resourcepack": (".zip",), "shader": (".zip",)}
 
 
 def app_root() -> Path:
-    return Path(os.getenv("LOCALAPPDATA", str(Path.home()))) / "UnsupervisedAdultsMC"
+    # Frozen: place all persistent data next to the distributed EXE.
+    # Source tree: keep an identically structured data folder next to the code.
+    location = Path(sys.executable if getattr(sys, "frozen", False) else __file__).resolve().parent
+    return location / "UnsupervisedAdultsMC_Data"
 
 
 def bundled_catalog_path() -> Path:

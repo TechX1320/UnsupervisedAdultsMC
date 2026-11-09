@@ -38,7 +38,9 @@ if errorlevel 1 goto :error
 echo.
 echo SUCCESS: dist\UnsupervisedAdultsMC.exe
 echo This is the only program your friends need to download.
-echo Minecraft, Java, Fabric and mods are fetched by the launcher on first Play.
+echo Keep the EXE in a writable folder (not Program Files).
+echo A UnsupervisedAdultsMC_Data folder is created beside the EXE.
+echo Minecraft, Java, Fabric and mods are fetched on first run.
 pause
 exit /b 0
 :error

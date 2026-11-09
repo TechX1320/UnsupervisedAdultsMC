@@ -7,3 +7,5 @@ dist/
 *.pyc
 *.uadownload
 .DS_Store
+
+/UnsupervisedAdultsMC_Data/

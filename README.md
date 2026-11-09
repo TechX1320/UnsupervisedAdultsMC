@@ -7,7 +7,7 @@
 ## What friends do
 
 1. Download **`UnsupervisedAdultsMC.exe`** from you. No Python, separate Java, Fabric installer, Prism, or third-party Minecraft launcher needed.
-2. Double-click **PLAY SMP**. On first launch, Microsoft sign-in opens in their normal browser and returns automatically to the app. This requires a valid purchased **Minecraft Java Edition** account.
+2. Click **SIGN IN WITH MICROSOFT**. The launcher opens a Microsoft verification page and shows a one-time code to enter. (If Microsoft does not support device sign-in for this app, it falls back to secure browser sign-in.) You must own **Minecraft Java Edition**.
 3. The app fetches the pinned modpack, downloads official Minecraft game files, its Java runtime, Fabric, mods, shaders and resources, then launches Minecraft directly (and connects to the configured SMP).
 4. Next time: click **PLAY SMP** again; files are verified, changed mods download automatically, and the remembered Microsoft account is refreshed.
 
@@ -15,14 +15,14 @@
 
 ## Owner: Microsoft login setup — REQUIRED
 
-Microsoft does **not** permit arbitrary custom launchers to impersonate the official Minecraft launcher. The owner must configure an Azure public-client application and request Minecraft API approval. Without a permitted Microsoft App ID, **the launcher can install files, but cannot log in or start online-mode Minecraft**. We intentionally don't ship borrowed or unofficial client IDs.
+Microsoft does **not** permit arbitrary custom launchers to impersonate the official Minecraft launcher. The owner must register a Microsoft public-client application, and **Minecraft Services may require a separate approval/allowlisting process**. A working Azure app ID alone does not guarantee Minecraft login. Without a permitted Microsoft App ID, **the launcher can install files, but cannot log in or start online-mode Minecraft**. We intentionally don't ship borrowed or unofficial client IDs.
 
 1. Follow [Microsoft's desktop app registration instructions](https://learn.microsoft.com/en-us/entra/identity-platform/scenario-desktop-app-registration). Register a personal-account-compatible **public client** application. Under **Authentication → Mobile and desktop applications**, add `http://localhost` as the loopback redirect URI. Allow public client flows. **Do not create or distribute a client secret.**
-2. Request Minecraft API access for your new application through [Minecraft's application approval instructions](https://help.minecraft.net/hc/en-us/articles/16254801392141). You may need to wait for approval, and access is not guaranteed.
+2. Investigate Minecraft Services application approval. Some developers report success through [Microsoft's AppID approval form](https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=v4j5cvGGr0GRqy180BHbR-ajEQ1td1ROpz00KtS8Gd5UNVpPTkVLNFVROVQxNkdRMEtXVjNQQjdXVC4u), as described in [this developer discussion](https://learn.microsoft.com/en-us/answers/questions/5984225/minecraft-services-http-403-invalid-app-registrati). The form and approval route may change and **approval is not guaranteed**; Minecraft may reject unapproved client IDs with HTTP 403. A private Minecraft server does not remove this requirement.
 3. Copy the **Application (client) ID** (a UUID) into `pack/catalog.json` as `microsoft_client_id` and commit it to `main`. **The client ID is public, not a password.** Do not commit any tokens or secrets.
 4. Test **SIGN IN WITH MICROSOFT** on your own Windows account. If you get an API permission error, confirm the app is approved; it isn't a missing launcher feature.
 
-Sign-in uses PKCE and `state`, with a temporary local-only callback on an available port. Browser passwords are never shown to the launcher. Refresh tokens are stored under your Windows user profile using Windows **DPAPI** encryption and never committed to GitHub. Sign-in is personal to each friend.
+Sign-in prefers Microsoft's **device-code flow**: a verification URL and one-time code appear in our launcher, with the official Microsoft browser page. If that flow is unavailable, the launcher uses PKCE and `state` with a temporary loopback callback. **No custom authentication web server, secret, or friend-side API setup is needed.** Browser passwords never enter the launcher. The refresh token is saved in the EXE-adjacent data folder using Windows **DPAPI** encryption; it stays bound to the original Windows user account (copying it to another PC or user does not transfer the login).
 
 ## Build locally on Windows
 
@@ -52,14 +52,29 @@ There are **no GitHub Actions workflows** and no hosted launcher infrastructure 
 
 ## Local game files
 
-The isolated Minecraft installation lives at `%LOCALAPPDATA%\UnsupervisedAdultsMC\instance\.minecraft`; it does not modify the player's official `.minecraft`. Cached account credentials are protected in `%LOCALAPPDATA%\UnsupervisedAdultsMC\account.dpapi`. The latest Minecraft process log is `logs\latest-game.log` (tokens and launch arguments are not recorded by our code). The launcher downloads game files from Mojang/Fabric and mod files from checksum-verified allowlisted hosts.
+All persistent data now lives **beside the EXE**. Put `UnsupervisedAdultsMC.exe` in a **writable** folder such as `D:\Games\UnsupervisedAdultsMC\` or an extracted portable folder, not in Program Files. Running it creates `UnsupervisedAdultsMC_Data\` in that same folder:
+
+```text
+UnsupervisedAdultsMC.exe
+UnsupervisedAdultsMC_Data/
+  account.dpapi             Your local Windows-encrypted sign-in cache
+  settings.json             Launcher/server settings
+  lock-cache.json           Pinned modpack cache
+  logs/latest-game.log
+  instance/.minecraft/      Minecraft 1.21.1, Fabric, mods, Java, assets, saves
+```
+
+The launcher **does not modify** the regular Minecraft `.minecraft` folder and no longer puts its installation in `%LOCALAPPDATA%`. Existing versions' data under `%LOCALAPPDATA%\UnsupervisedAdultsMC` is **not moved automatically** (to avoid duplicating many gigabytes). If you want existing mod files, manually **move** that old folder's contents into the new `UnsupervisedAdultsMC_Data` location while the launcher is closed, rather than copying. Back up saved worlds first. DPAPI account encryption can only be read by the same Windows user.
+
+If the Mojang Java download is missing or not found, the launcher falls back to a checksum-verified **portable Eclipse Temurin Java 21** inside the game folder. No administrator installation or changes to system Java are needed. Temporary PyInstaller extraction may still use the Windows temporary directory while the EXE is running; permanent game data is stored beside the EXE.
 
 ## Source structure
 
 ```
 launcher.py                  Tkinter desktop interface
-ua_auth.py                   Microsoft OAuth PKCE, login refresh, encrypted token storage
+ua_auth.py                   Microsoft device-code or PKCE login, refresh, encrypted token storage
 ua_minecraft.py              Vanilla/Java/Fabric installer and direct game launch
+ua_java.py                   Verified, self-contained Temurin Java 21 fallback
 ua_core.py                   Verified modpack resolver/updater, app folders
 build.cmd                    Owner's local Windows EXE build
 requirements-build.txt       Pinned Minecraft/PyInstaller build libraries

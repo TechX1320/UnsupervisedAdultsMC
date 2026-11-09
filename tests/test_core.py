@@ -190,3 +190,107 @@ class GameTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class PortableInstallTests(unittest.TestCase):
+    def test_frozen_exe_stores_near_exe(self):
+        with mock.patch.object(c.sys, "frozen", True, create=True), \
+             mock.patch.object(c.sys, "executable", r"D:\Games\SMP\UnsupervisedAdultsMC.exe"):
+            # On POSIX, Windows paths don't parse as platform paths: test the
+            # invariant using a native absolute path.
+            with tempfile.TemporaryDirectory() as root:
+                with mock.patch.object(c.sys, "executable", str(Path(root) / "UnsupervisedAdultsMC.exe")):
+                    self.assertEqual(c.app_root(), Path(root) / "UnsupervisedAdultsMC_Data")
+
+    def test_source_code_stores_alongside_source(self):
+        with mock.patch.object(c.sys, "frozen", False, create=True):
+            self.assertEqual(c.app_root(), Path(c.__file__).resolve().parent / "UnsupervisedAdultsMC_Data")
+
+
+class JavaFallbackTests(unittest.TestCase):
+    def test_verified_temurin_unpack_stays_local(self):
+        import io, zipfile
+        import ua_java
+        with tempfile.TemporaryDirectory() as root:
+            buf = io.BytesIO()
+            with zipfile.ZipFile(buf, "w") as z:
+                z.writestr("jdk-21-jre/bin/java.exe", b"local portable java")
+                z.writestr("jdk-21-jre/bin/javaw.exe", b"local portable javaw")
+            contents = buf.getvalue()
+            sha = hashlib.sha256(contents).hexdigest()
+            api = lambda _: [{"binary": {"package": {
+                "link": "https://github.com/adoptium/temurin21-binaries/releases/download/test/jre.zip",
+                "checksum": sha}}}]
+            def fetch(_url, file, hashes, _status):
+                self.assertEqual(hashes["sha256"], sha)
+                Path(file).write_bytes(contents)
+            result = ua_java.ensure_temurin_java(Path(root), lambda _: None, fetch, api)
+            self.assertEqual(Path(result), Path(root)/"runtime"/"ua-temurin21"/"bin"/"java.exe")
+            self.assertTrue(Path(result).is_file())
+            self.assertFalse((Path(root)/"runtime"/"ua-temurin21-download.zip").exists())
+            result2 = ua_java.ensure_temurin_java(Path(root), lambda _: None, fetch, api)
+            self.assertEqual(result2, result)
+
+    def test_reject_traversal_in_java_archive(self):
+        import zipfile
+        import ua_java
+        with tempfile.TemporaryDirectory() as root:
+            archive = Path(root)/"test.zip"
+            with zipfile.ZipFile(archive, "w") as z:
+                z.writestr("../outside-file", "oops")
+                z.writestr("jdk/bin/java.exe", "dummy")
+            with self.assertRaises(ua_java.JavaInstallError):
+                ua_java._safe_extract(archive, Path(root)/"output")
+
+
+class DeviceFlowTests(unittest.TestCase):
+    def test_device_code_never_asks_for_password_or_client_secret(self):
+        responses = []
+        calls = []
+        def post(url, params):
+            calls.append((url, dict(params)))
+            if url.endswith("devicecode"):
+                return {"verification_uri": "https://www.microsoft.com/link", "user_code": "ABCD-EFGH",
+                        "device_code": "opaque-device-code", "expires_in": 900, "interval": 5}
+            responses.append("polled")
+            return ({"error": "authorization_pending"} if len(responses) == 1 else
+                    {"access_token": "ms-access", "refresh_token": "ms-refresh"})
+        fake_ms = SimpleNamespace(
+            authenticate_with_xbl=lambda token:{"Token": "xbl", "DisplayClaims": {"xui":[{"uhs":"user-hash"}]}},
+            authenticate_with_xsts=lambda token: {"Token": "xsts"},
+            authenticate_with_minecraft=lambda userhash, token: {"access_token": "mc-access"},
+            get_profile=lambda token: {"id": "player-uuid", "name": "Player"},
+        )
+        shown=[]
+        with mock.patch.dict(sys.modules, {"minecraft_launcher_lib": SimpleNamespace(microsoft_account=fake_ms)}):
+            session=auth.microsoft_device_login("12345678-1234-1234-1234-123456789abc",
+                lambda _:None, lambda uri,code:shown.append((uri,code)), post=post, sleep=lambda seconds:None)
+        self.assertEqual(shown, [("https://www.microsoft.com/link", "ABCD-EFGH")])
+        self.assertEqual(session["name"], "Player")
+        self.assertEqual(session["refresh_token"], "ms-refresh")
+        self.assertEqual(session["access_token"], "mc-access")
+        self.assertEqual(calls[0][1]["scope"], "XboxLive.signin offline_access")
+        self.assertFalse(any("password" in fields or "client_secret" in fields for _url,fields in calls))
+
+    def test_device_code_unsupported_triggers_fallback_exception(self):
+        def post(url, fields):
+            return {"error": "unauthorized_client"}
+        with self.assertRaises(auth.DeviceCodeUnavailable):
+            auth.microsoft_device_login("12345678-1234-1234-1234-123456789abc",
+                lambda _:None, post=post)
+
+class MojangRuntimeFallbackTests(unittest.TestCase):
+    def test_missing_mojang_runtime_uses_local_temurin(self):
+        import ua_java
+        with tempfile.TemporaryDirectory() as temp:
+            game = Path(temp)
+            meta = game / "versions" / "1.21.1"
+            meta.mkdir(parents=True)
+            (meta / "1.21.1.json").write_text(json.dumps({"javaVersion": {"component": "java-runtime-delta"}}))
+            fake_java = game / "runtime" / "ua-temurin21" / "bin" / "java.exe"
+            fake_java.parent.mkdir(parents=True)
+            fake_java.write_bytes(b"java")
+            fake = SimpleNamespace(runtime=SimpleNamespace(get_executable_path=lambda *args: None))
+            with mock.patch.object(ua_java, "ensure_temurin_java", return_value=str(fake_java)) as fallback:
+                got = mc._vanilla_runtime(game, "1.21.1", fake, {})
+            self.assertEqual(got, str(fake_java))
+            fallback.assert_called_once()

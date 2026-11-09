@@ -55,12 +55,20 @@ def _vanilla_runtime(game: Path, mc: str, lib, callback) -> str:
     if not component:
         raise InstallError("Minecraft version metadata does not declare a Java runtime")
     java = lib.runtime.get_executable_path(component, str(game))
-    if not java:
-        lib.runtime.install_jvm_runtime(component, str(game), callback=callback)
-        java = lib.runtime.get_executable_path(component, str(game))
-    if not java or not Path(java).is_file():
-        raise InstallError("The Minecraft Java runtime could not be installed")
-    return str(java)
+    if java and Path(java).is_file():
+        return str(java)
+    # The Mojang installer may successfully download Java but have a mismatched
+    # runtime directory layout. Look only inside this private game's runtime tree.
+    runtime_folder = game / "runtime" / component
+    if runtime_folder.is_dir():
+        for candidate in runtime_folder.rglob("java.exe"):
+            if candidate.parent.name.lower() == "bin" and candidate.is_file():
+                return str(candidate)
+    from ua_java import ensure_temurin_java, JavaInstallError
+    try:
+        return ensure_temurin_java(game, callback.get("setStatus", print))
+    except Exception as exc:
+        raise InstallError(f"Minecraft Java 21 installation failed: {exc}") from exc
 
 
 def ensure_game(game: Path, catalog: dict, status=print, progress=None) -> tuple[str, str]:
