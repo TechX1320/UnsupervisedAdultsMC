@@ -1,296 +1,241 @@
+"""No-network unit tests for the portable Prism + modpack workflow."""
 import hashlib
+import io
 import json
+import stat
 import sys
 import tempfile
-from pathlib import Path
-from types import SimpleNamespace
 import unittest
+import zipfile
+from pathlib import Path
 from unittest import mock
-from urllib.parse import parse_qs, urlparse
-from urllib.request import urlopen
-import threading
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import ua_core as c
-import ua_auth as auth
-import ua_minecraft as mc
+import ua_core as core
+import ua_prism as prism
 
 
-class ResolverTests(unittest.TestCase):
+class PackTests(unittest.TestCase):
     def catalog(self):
         return {
             "schema": 1, "pack_version": "test", "minecraft_version": "1.21.1",
             "fabric_loader_version": "0.16.14", "mods": [
                 {"name": "Sample", "slug": "sample", "type": "mod", "side": "both", "required": True},
                 {"name": "Gone", "slug": "gone", "type": "mod", "side": "client"},
-                {"name": "Manual Mod", "source": "manual", "type": "mod", "side": "both", "page": "https://example.com"},
-                {"name": "Disabled", "slug": "disabled", "type": "mod", "side": "client", "enabled": False}
-            ]
+                {"name": "Manual", "source": "manual", "type": "mod", "side": "both"},
+                {"name": "Disabled", "slug": "disabled", "type": "mod", "side": "client", "enabled": False},
+            ],
         }
 
-    def api(self, url):
+    @staticmethod
+    def api(url):
         if "/gone/" in url:
             return []
         if "/sample/" in url:
             return [{
-                "id": "v1", "project_id": "proj1", "version_number": "1.2.3", "version_type": "release",
+                "id": "v1", "project_id": "sample", "version_number": "1.2.3", "version_type": "release",
                 "game_versions": ["1.21.1"], "loaders": ["fabric"], "date_published": "2026-01-01",
                 "dependencies": [],
-                "files": [{"filename": "sample.jar", "url": "https://cdn.modrinth.com/data/xxx/sample.jar",
-                           "hashes": {"sha256": "a" * 64}, "size": 3, "primary": True}]
+                "files": [{"filename": "sample.jar", "url": "https://cdn.modrinth.com/data/x/sample.jar",
+                           "hashes": {"sha256": "a" * 64}, "size": 3, "primary": True}],
             }]
-        raise AssertionError(f"Unexpected API call: {url}")
+        raise AssertionError("Unexpected Modrinth request: " + url)
 
-    def test_resolve_and_validate(self):
+    def test_resolve_validate_and_skip(self):
         cat = self.catalog()
-        lock = c.resolve_catalog(cat, lambda _: None, api=self.api)
-        c.validate_lock(lock, cat)
-        self.assertEqual(len(lock["files"]), 1)
+        lock = core.resolve_catalog(cat, lambda _: None, api=self.api)
+        core.validate_lock(lock, cat)
         self.assertEqual(lock["files"][0]["path"], "mods/sample.jar")
         self.assertEqual(len(lock["skipped"]), 3)
-        self.assertEqual(c.unresolved_required(lock), [])
+        self.assertEqual(core.unresolved_required(lock), [])
 
-    def test_missing_required_fails(self):
+    def test_required_unavailable_blocks_play(self):
         cat = self.catalog()
         cat["mods"][0]["slug"] = "gone"
-        lock = c.resolve_catalog(cat, lambda _: None, api=self.api)
-        self.assertIn("Sample", c.unresolved_required(lock))
+        lock = core.resolve_catalog(cat, lambda _: None, api=self.api)
+        self.assertIn("Sample", core.unresolved_required(lock))
 
-    def test_lock_must_match_catalog(self):
+    def test_changed_catalog_invalidates_old_lock(self):
         cat = self.catalog()
-        lock = c.resolve_catalog(cat, lambda _: None, api=self.api)
-        cat["pack_version"] = "changed"
+        lock = core.resolve_catalog(cat, lambda _: None, api=self.api)
+        cat["pack_version"] = "new"
         with self.assertRaises(ValueError):
-            c.validate_lock(lock, cat)
+            core.validate_lock(lock, cat)
 
-    def test_unsafe_path_is_rejected(self):
+    def test_traversal_in_mod_path_is_rejected(self):
         cat = self.catalog()
-        lock = c.resolve_catalog(cat, lambda _: None, api=self.api)
+        lock = core.resolve_catalog(cat, lambda _: None, api=self.api)
         lock["files"][0]["path"] = "mods/../../bad.jar"
         with self.assertRaises(ValueError):
-            c.validate_lock(lock, cat)
+            core.validate_lock(lock, cat)
 
-    def test_isolated_game_folder(self):
-        with tempfile.TemporaryDirectory() as d:
-            base = Path(d)
-            path = c.ensure_instance(base, self.catalog())
-            self.assertEqual(path, base / "instance")
-            self.assertTrue((path / ".minecraft").is_dir())
-            self.assertFalse((base / "prism-data").exists())
-            own = path / ".minecraft" / "options.txt"
-            own.write_text("custom=true")
-            c.ensure_instance(base, self.catalog())
-            self.assertEqual(own.read_text(), "custom=true")
-
-    def test_optional_download_can_be_skipped(self):
-        with tempfile.TemporaryDirectory() as d:
-            root = Path(d)
-            game = root / ".minecraft"
+    def test_optional_download_failure_does_not_break_pack(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            instance = Path(tmp)
+            game = instance / ".minecraft"
             game.mkdir()
-            payload = b"mod file"
-            good = game / "mods" / "sample.jar"
+            payload = b"test"
+            good = game / "mods" / "working.jar"
             good.parent.mkdir()
             good.write_bytes(payload)
-            lock = {
-                "pack_version": "1", "skipped": [],
-                "files": [
-                    {"name": "Sample", "side": "client", "path": "mods/sample.jar",
-                     "hashes": {"sha256": hashlib.sha256(payload).hexdigest()}, "required": True,
-                     "url": "https://cdn.modrinth.com/test/sample.jar"},
-                    {"name": "Optional", "side": "client", "path": "mods/optional.jar",
-                     "hashes": {"sha256": "0"*64}, "required": False,
-                     "url": "https://cdn.modrinth.com/test/optional.jar"}
-                ]
-            }
-            with mock.patch.object(c, "download_verified", side_effect=OSError("offline")):
-                result = c.install_client(lock, root, status=lambda _: None)
+            lock = {"pack_version": "test", "skipped": [], "files": [
+                {"name": "Working", "side": "client", "path": "mods/working.jar",
+                 "hashes": {"sha256": hashlib.sha256(payload).hexdigest()}, "required": True,
+                 "url": "https://cdn.modrinth.com/working.jar"},
+                {"name": "Optional", "side": "client", "path": "mods/missing.jar",
+                 "hashes": {"sha256": "0" * 64}, "required": False,
+                 "url": "https://cdn.modrinth.com/missing.jar"},
+            ]}
+            with mock.patch.object(core, "download_verified", side_effect=OSError("offline")):
+                result = core.install_client(lock, instance, status=lambda _: None)
             self.assertEqual(result["count"], 1)
+            self.assertEqual(result["updated"], 0)
             self.assertEqual(len(result["failed"]), 1)
+            self.assertEqual(good.read_bytes(), payload)
 
 
-class AuthTests(unittest.TestCase):
-    def test_client_id_required(self):
-        with self.assertRaises(auth.AuthenticationError):
-            auth.require_client_id({"microsoft_client_id": ""})
-        client_id = "12345678-1234-1234-1234-123456789abc"
-        self.assertEqual(auth.require_client_id({"microsoft_client_id": client_id}), client_id)
-
-    def test_login_uses_pkce_loopback_without_password_prompt(self):
-        captured = {}
-        class MockAccount:
-            def get_secure_login_data(self, client_id, redirect):
-                captured["redirect"] = redirect
-                return f"https://login.example.invalid?state=state123&redirect={redirect}", "state123", "verifier123"
-            def complete_login(self, client_id, secret, redirect, code, verifier):
-                self_args = (client_id, secret, redirect, code, verifier)
-                captured["args"] = self_args
-                return {"name":"TestPlayer","id":"000000","refresh_token":"refresh","access_token":"access"}
-        mock_lib = SimpleNamespace(microsoft_account=MockAccount())
-        def fake_browser(url):
-            target = captured["redirect"] + "?state=state123&code=12345"
-            threading.Thread(target=lambda: urlopen(target, timeout=3).read(), daemon=True).start()
-            return True
-        with mock.patch.dict(sys.modules, {"minecraft_launcher_lib": mock_lib}):
-            result = auth.microsoft_login("12345678-1234-1234-1234-123456789abc", lambda _: None, 5, fake_browser)
-        self.assertEqual(result["name"], "TestPlayer")
-        self.assertEqual(captured["args"][1], None)
-        self.assertEqual(captured["args"][3:], ("12345", "verifier123"))
-
-    def test_saved_token_is_never_plaintext_on_unix(self):
-        if sys.platform == "win32":
-            self.skipTest("Windows uses DPAPI; UNIX should fail explicitly")
-        with self.assertRaises(OSError):
-            auth._windows_dpapi(b"sensitive")
-
-
-class GameTests(unittest.TestCase):
+class PortablePrismTests(unittest.TestCase):
     def catalog(self):
-        return {"minecraft_version": "1.21.1", "fabric_loader_version": "0.16.14"}
+        return {"schema": 1, "minecraft_version": "1.21.1",
+                "fabric_loader_version": "0.16.14", "mods": []}
 
-    def test_fabric_id(self):
-        self.assertEqual(mc.profile_id(self.catalog()), "fabric-loader-0.16.14-1.21.1")
+    def test_portable_root_for_frozen_executable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            exe = Path(tmp) / "UnsupervisedAdultsMC.exe"
+            with mock.patch.object(core.sys, "frozen", True, create=True), \
+                 mock.patch.object(core.sys, "executable", str(exe)):
+                self.assertEqual(core.app_root(), Path(tmp) / "UnsupervisedAdultsMC_Data")
 
-    def test_server_address_parsing(self):
-        self.assertEqual(mc.server_options("example.com:25566"), {"server":"example.com", "port":"25566"})
-        self.assertEqual(mc.server_options(""), {})
-        self.assertEqual(mc.server_options("[::1]:25565"), {"server":"::1", "port":"25565"})
-        for bad in ("x:0", "x:65536", "fake/path", "hello world", ":25565", "x:abc"):
-            with self.subTest(bad=bad), self.assertRaises(ValueError):
-                mc.server_options(bad)
+    def test_source_mode_uses_source_folder(self):
+        with mock.patch.object(core.sys, "frozen", False, create=True):
+            self.assertEqual(core.app_root(), Path(core.__file__).resolve().parent / "UnsupervisedAdultsMC_Data")
 
-    def test_fabric_installed_and_java_path_used(self):
+    def test_instance_has_fixed_game_and_fabric_versions(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            game = root / "game"
-            java = root / "java.exe"
-            java.write_bytes(b"fake")
+            instance = prism.ensure_instance(root, self.catalog())
+            self.assertEqual(instance, root / "prism-data" / "instances" / core.PACK_ID)
+            self.assertTrue((instance / ".minecraft").is_dir())
+            data = json.loads((instance / "mmc-pack.json").read_text())
+            self.assertEqual(data["components"][0]["version"], "1.21.1")
+            self.assertEqual(data["components"][1]["uid"], "net.fabricmc.fabric-loader")
+            self.assertEqual(data["components"][1]["version"], "0.16.14")
+            (instance / "instance.cfg").write_text("user changed")
+            prism.ensure_instance(root, self.catalog())
+            self.assertEqual((instance / "instance.cfg").read_text(), "user changed")
+
+    @staticmethod
+    def make_archive(members):
+        out = io.BytesIO()
+        with zipfile.ZipFile(out, "w") as z:
+            for name, value in members.items():
+                z.writestr(name, value)
+        return out.getvalue()
+
+    def test_pinned_prism_archive_installs_with_verification(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            blob = self.make_archive({"PrismLauncher/prismlauncher.exe": b"mock-exe"})
             calls = []
-            def install_mc(version, directory, callback=None):
-                calls.append(("minecraft",version))
-                version_path = game / "versions" / version
-                version_path.mkdir(parents=True,exist_ok=True)
-                (version_path / (version+".json")).write_text(json.dumps({"javaVersion":{"component":"java-runtime-gamma"}}))
-            def install_fabric(version, directory, loader_version=None,callback=None,java=None):
-                calls.append(("fabric",loader_version,java))
-                fid = mc.profile_id(self.catalog())
-                version_path = game / "versions" / fid
-                version_path.mkdir(parents=True,exist_ok=True)
-                (version_path / (fid+".json")).write_text("{}")
-            fake = SimpleNamespace(
-                install=SimpleNamespace(install_minecraft_version=install_mc),
-                fabric=SimpleNamespace(install_fabric=install_fabric),
-                runtime=SimpleNamespace(get_executable_path=lambda v,d:str(java)),
-            )
-            with mock.patch.dict(sys.modules, {"minecraft_launcher_lib": fake}):
-                version, chosen = mc.ensure_game(game, self.catalog(),lambda _: None)
-            self.assertEqual(version, mc.profile_id(self.catalog()))
-            self.assertEqual(chosen, str(java))
-            self.assertEqual(calls[-1], ("fabric","0.16.14", str(java)))
+            def download(url, dest, hashes, status, max_bytes):
+                calls.append((url, hashes, max_bytes))
+                Path(dest).write_bytes(blob)
+            exe = prism.ensure_prism(root, lambda _: None, fetch=download)
+            self.assertTrue(exe.is_file())
+            self.assertEqual(exe.read_bytes(), b"mock-exe")
+            self.assertEqual(calls[0][1], {"sha256": prism.PRISM_SHA256})
+            self.assertTrue(calls[0][0].startswith("https://github.com/PrismLauncher/"))
+            self.assertEqual(prism.ensure_prism(root, lambda _: None, fetch=download), exe)
+            self.assertEqual(len(calls), 1)
+            self.assertFalse((root / "prism-download.zip").exists())
+
+    def test_rejects_traversal_archive(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            archive = root / "bad.zip"
+            archive.write_bytes(self.make_archive({
+                "../outside.txt": b"unsafe", "prism/prismlauncher.exe": b"exe",
+            }))
+            staging = root / "staging"
+            staging.mkdir()
+            with self.assertRaises(ValueError):
+                prism._unpack_verified(archive, staging)
+            self.assertFalse((root / "outside.txt").exists())
+
+    def test_rejects_symlink_archive(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            archive = root / "symlink.zip"
+            with zipfile.ZipFile(archive, "w") as z:
+                link = zipfile.ZipInfo("prism/linked")
+                link.create_system = 3
+                link.external_attr = (stat.S_IFLNK | 0o777) << 16
+                z.writestr(link, "../../something")
+                z.writestr("prism/prismlauncher.exe", b"exe")
+            staging = root / "staging"
+            staging.mkdir()
+            with self.assertRaises(ValueError):
+                prism._unpack_verified(archive, staging)
+
+    def test_first_run_account_indicator_never_reads_token(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertFalse(prism.has_prism_account_file(root))
+            path = prism.accounts_file(root)
+            path.parent.mkdir(parents=True)
+            path.write_bytes(b"private token data")
+            self.assertTrue(prism.has_prism_account_file(root))
+
+    def test_cli_uses_private_data_root_and_online_session(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            exe = root / "prism-bin" / "prismlauncher.exe"
+            exe.parent.mkdir()
+            exe.write_bytes(b"exe")
+            prism.ensure_instance(root, self.catalog())
+            calls = []
+            def popen(args, cwd):
+                calls.append((args, cwd))
+                return "proc"
+            self.assertEqual(prism.open_prism(root, exe, popen=popen), "proc")
+            self.assertEqual(calls[0][0], [str(exe), "-d", str(root / "prism-data")])
+            self.assertEqual(prism.launch_instance(root, exe, "smp.example.org:25565", popen=popen), "proc")
+            args = calls[1][0]
+            self.assertEqual(args[:3], [str(exe), "-d", str(root / "prism-data")])
+            self.assertEqual(args[3:], ["--launch", core.PACK_ID, "--server", "smp.example.org:25565"])
+            self.assertNotIn("--offline", args)
+            self.assertEqual(calls[1][1], exe.parent)
+
+    def test_server_address_validation(self):
+        self.assertEqual(prism.validate_server_address("smp.example.com:25565"), "smp.example.com:25565")
+        self.assertEqual(prism.validate_server_address("[::1]:25565"), "[::1]:25565")
+        self.assertEqual(prism.validate_server_address(""), "")
+        for bad in ("smp/path", "server:0", "server:65536", "server:", "server:abc", ":25565", "a b", "::1"):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                prism.validate_server_address(bad)
+
+    def test_migrates_existing_mods_and_saves_without_overwriting(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            inst = prism.ensure_instance(root, self.catalog())
+            src = root / "instance" / ".minecraft"
+            (src / "mods").mkdir(parents=True)
+            (src / "mods" / "prior.jar").write_bytes(b"old mod")
+            (src / "saves" / "MyWorld").mkdir(parents=True)
+            (src / "saves" / "MyWorld" / "level.dat").write_bytes(b"world")
+            (src / "libraries").mkdir()
+            (src / "libraries" / "old.jar").write_bytes(b"no need")
+            dest = inst / ".minecraft"
+            (dest / "mods").mkdir()
+            (dest / "mods" / "prior.jar").write_bytes(b"newer mod")
+            count = prism.migrate_legacy(root, inst, status=lambda _: None)
+            self.assertGreater(count, 0)
+            self.assertEqual((dest / "mods" / "prior.jar").read_bytes(), b"newer mod")
+            self.assertTrue((src / "mods" / "prior.jar").exists())  # collision retained
+            self.assertEqual((dest / "saves" / "MyWorld" / "level.dat").read_bytes(), b"world")
+            self.assertTrue((src / "libraries" / "old.jar").is_file())
+            self.assertEqual(prism.migrate_legacy(root, inst, status=lambda _: None), 0)
 
 
 if __name__ == "__main__":
     unittest.main()
-
-class PortableInstallTests(unittest.TestCase):
-    def test_frozen_exe_stores_near_exe(self):
-        with mock.patch.object(c.sys, "frozen", True, create=True), \
-             mock.patch.object(c.sys, "executable", r"D:\Games\SMP\UnsupervisedAdultsMC.exe"):
-            # On POSIX, Windows paths don't parse as platform paths: test the
-            # invariant using a native absolute path.
-            with tempfile.TemporaryDirectory() as root:
-                with mock.patch.object(c.sys, "executable", str(Path(root) / "UnsupervisedAdultsMC.exe")):
-                    self.assertEqual(c.app_root(), Path(root) / "UnsupervisedAdultsMC_Data")
-
-    def test_source_code_stores_alongside_source(self):
-        with mock.patch.object(c.sys, "frozen", False, create=True):
-            self.assertEqual(c.app_root(), Path(c.__file__).resolve().parent / "UnsupervisedAdultsMC_Data")
-
-
-class JavaFallbackTests(unittest.TestCase):
-    def test_verified_temurin_unpack_stays_local(self):
-        import io, zipfile
-        import ua_java
-        with tempfile.TemporaryDirectory() as root:
-            buf = io.BytesIO()
-            with zipfile.ZipFile(buf, "w") as z:
-                z.writestr("jdk-21-jre/bin/java.exe", b"local portable java")
-                z.writestr("jdk-21-jre/bin/javaw.exe", b"local portable javaw")
-            contents = buf.getvalue()
-            sha = hashlib.sha256(contents).hexdigest()
-            api = lambda _: [{"binary": {"package": {
-                "link": "https://github.com/adoptium/temurin21-binaries/releases/download/test/jre.zip",
-                "checksum": sha}}}]
-            def fetch(_url, file, hashes, _status):
-                self.assertEqual(hashes["sha256"], sha)
-                Path(file).write_bytes(contents)
-            result = ua_java.ensure_temurin_java(Path(root), lambda _: None, fetch, api)
-            self.assertEqual(Path(result), Path(root)/"runtime"/"ua-temurin21"/"bin"/"java.exe")
-            self.assertTrue(Path(result).is_file())
-            self.assertFalse((Path(root)/"runtime"/"ua-temurin21-download.zip").exists())
-            result2 = ua_java.ensure_temurin_java(Path(root), lambda _: None, fetch, api)
-            self.assertEqual(result2, result)
-
-    def test_reject_traversal_in_java_archive(self):
-        import zipfile
-        import ua_java
-        with tempfile.TemporaryDirectory() as root:
-            archive = Path(root)/"test.zip"
-            with zipfile.ZipFile(archive, "w") as z:
-                z.writestr("../outside-file", "oops")
-                z.writestr("jdk/bin/java.exe", "dummy")
-            with self.assertRaises(ua_java.JavaInstallError):
-                ua_java._safe_extract(archive, Path(root)/"output")
-
-
-class DeviceFlowTests(unittest.TestCase):
-    def test_device_code_never_asks_for_password_or_client_secret(self):
-        responses = []
-        calls = []
-        def post(url, params):
-            calls.append((url, dict(params)))
-            if url.endswith("devicecode"):
-                return {"verification_uri": "https://www.microsoft.com/link", "user_code": "ABCD-EFGH",
-                        "device_code": "opaque-device-code", "expires_in": 900, "interval": 5}
-            responses.append("polled")
-            return ({"error": "authorization_pending"} if len(responses) == 1 else
-                    {"access_token": "ms-access", "refresh_token": "ms-refresh"})
-        fake_ms = SimpleNamespace(
-            authenticate_with_xbl=lambda token:{"Token": "xbl", "DisplayClaims": {"xui":[{"uhs":"user-hash"}]}},
-            authenticate_with_xsts=lambda token: {"Token": "xsts"},
-            authenticate_with_minecraft=lambda userhash, token: {"access_token": "mc-access"},
-            get_profile=lambda token: {"id": "player-uuid", "name": "Player"},
-        )
-        shown=[]
-        with mock.patch.dict(sys.modules, {"minecraft_launcher_lib": SimpleNamespace(microsoft_account=fake_ms)}):
-            session=auth.microsoft_device_login("12345678-1234-1234-1234-123456789abc",
-                lambda _:None, lambda uri,code:shown.append((uri,code)), post=post, sleep=lambda seconds:None)
-        self.assertEqual(shown, [("https://www.microsoft.com/link", "ABCD-EFGH")])
-        self.assertEqual(session["name"], "Player")
-        self.assertEqual(session["refresh_token"], "ms-refresh")
-        self.assertEqual(session["access_token"], "mc-access")
-        self.assertEqual(calls[0][1]["scope"], "XboxLive.signin offline_access")
-        self.assertFalse(any("password" in fields or "client_secret" in fields for _url,fields in calls))
-
-    def test_device_code_unsupported_triggers_fallback_exception(self):
-        def post(url, fields):
-            return {"error": "unauthorized_client"}
-        with self.assertRaises(auth.DeviceCodeUnavailable):
-            auth.microsoft_device_login("12345678-1234-1234-1234-123456789abc",
-                lambda _:None, post=post)
-
-class MojangRuntimeFallbackTests(unittest.TestCase):
-    def test_missing_mojang_runtime_uses_local_temurin(self):
-        import ua_java
-        with tempfile.TemporaryDirectory() as temp:
-            game = Path(temp)
-            meta = game / "versions" / "1.21.1"
-            meta.mkdir(parents=True)
-            (meta / "1.21.1.json").write_text(json.dumps({"javaVersion": {"component": "java-runtime-delta"}}))
-            fake_java = game / "runtime" / "ua-temurin21" / "bin" / "java.exe"
-            fake_java.parent.mkdir(parents=True)
-            fake_java.write_bytes(b"java")
-            fake = SimpleNamespace(runtime=SimpleNamespace(get_executable_path=lambda *args: None))
-            with mock.patch.object(ua_java, "ensure_temurin_java", return_value=str(fake_java)) as fallback:
-                got = mc._vanilla_runtime(game, "1.21.1", fake, {})
-            self.assertEqual(got, str(fake_java))
-            fallback.assert_called_once()

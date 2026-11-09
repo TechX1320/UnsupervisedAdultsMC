@@ -1,2 +1,1 @@
-minecraft-launcher-lib==8.0
 pyinstaller==6.22.3

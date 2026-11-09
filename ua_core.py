@@ -1,7 +1,7 @@
-"""Verified modpack downloads and isolated SMP instance storage.
+"""Verified Modrinth/GitHub modpack downloads for the dedicated Prism SMP instance.
 
-Pure standard library; Minecraft bootstrap/login is implemented in ua_minecraft
-and ua_auth. No external launcher application is required.
+All game and authentication work is delegated to official Prism Launcher.
+This file does not read or store Microsoft account tokens.
 """
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ import zipfile
 LAUNCHER_NAME = "Unsupervised Adults SMP"
 PACK_ID = "UnsupervisedAdultsSMP"
 REPO_ROOT = "https://raw.githubusercontent.com/TechX1320/UnsupervisedAdultsMC/main/pack/"
-UA = "TechX1320/UnsupervisedAdultsMC/0.2 (+https://github.com/TechX1320/UnsupervisedAdultsMC)"
+UA = "TechX1320/UnsupervisedAdultsMC/0.3 (+https://github.com/TechX1320/UnsupervisedAdultsMC)"
 FOLDERS = {"mod": "mods", "resourcepack": "resourcepacks", "shader": "shaderpacks"}
 FILE_EXT = {"mod": (".jar",), "resourcepack": (".zip",), "shader": (".zip",)}
 
@@ -339,18 +339,6 @@ def download_verified(url: str, dest: Path, hashes: dict, status=print, max_byte
         tmp.replace(dest)
     finally:
         tmp.unlink(missing_ok=True)
-
-
-def ensure_instance(root: Path, catalog: dict) -> Path:
-    """Create a fully isolated launcher-owned game folder; preserve personal settings.
-
-    The Minecraft library installs versions, assets, libraries and Java under
-    instance/.minecraft. We never modify the user's vanilla .minecraft folder.
-    """
-    check_catalog(catalog)
-    instance = root / "instance"
-    (instance / ".minecraft").mkdir(parents=True, exist_ok=True)
-    return instance
 
 
 def install_client(lock: dict, instance: Path, status=print, progress=None) -> dict:
