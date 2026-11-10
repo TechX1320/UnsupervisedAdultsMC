@@ -17,6 +17,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile
+import ua_conflicts
 
 LAUNCHER_NAME = "Unsupervised Adults SMP"
 PACK_ID = "UnsupervisedAdultsSMP"
@@ -418,8 +419,9 @@ def install_client(lock: dict, instance: Path, status=print, progress=None) -> d
             if target.is_relative_to(safe_game_root) and target.is_file() and target.parent.name in FOLDERS.values():
                 target.unlink()
                 status("Removed old managed file: " + name)
+        quarantined = ua_conflicts.quarantine_known_conflicts(game, wanted, status)
         state_file.write_text(json.dumps({"pack_version": lock["pack_version"], "files": sorted(desired)}, indent=2) + "\n", encoding="utf-8")
-        return {"count": len(succeeded), "skipped": len(lock.get("skipped", [])), "updated": len(staged), "failed": failed}
+        return {"count": len(succeeded), "skipped": len(lock.get("skipped", [])), "updated": len(staged), "failed": failed, "quarantined": quarantined}
     finally:
         shutil.rmtree(staging, ignore_errors=True)
 

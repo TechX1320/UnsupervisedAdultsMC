@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "pack_version": "0.5.2-alpha",
+  "pack_version": "0.5.3-alpha",
   "name": "Unsupervised SMP",
   "minecraft_version": "1.21.1",
   "fabric_loader_version": "0.19.5",
@@ -232,7 +232,9 @@
       "name": "Distant Horizons (Voxy alternative)",
       "slug": "distanthorizons",
       "type": "mod",
-      "side": "client"
+      "side": "both",
+      "required": false,
+      "note": "Install Distant Horizons on the server too for LOD generation and streaming beyond previously visited multiplayer chunks. Resource-intensive: test with conservative distance/generation settings. Client and server versions must match."
     },
     {
       "name": "Solas Shaders",
@@ -424,9 +426,9 @@
       "type": "mod",
       "side": "both",
       "required": false,
-      "url": "https://github.com/TechX1320/EggMorph/releases/download/v0.2.0-alpha.3/eggmorph-0.2.0-alpha.3.jar",
-      "sha256": "d54377ca08d6a1b765b6d8f9593cdb120fbd760079cff1bc6479493efa0122df",
-      "note": "Alpha 3 makes Morph Eggs always edible (including at full hunger) and adds creative test eggs for Zombie, Cow and Bee; compiled and prereleased but not yet tested end-to-end in the affected Prism SMP. The owner must make the EggMorph repository public to let the launcher download it without authentication. Install exactly one matching JAR on client and server."
+      "url": "https://github.com/TechX1320/EggMorph/releases/download/v0.2.0-alpha.4/eggmorph-0.2.0-alpha.4.jar",
+      "sha256": "7ba2e66f0068b994c8330ceedfff6514463b4de84ddb00c403ed0b5b265ee625",
+      "note": "Alpha4 replaces the generic dropped chicken-egg icon with native mob spawn eggs where available; marked spawn eggs morph on right-click and a visual-model interpolation fix was applied. Requires testing with matching client/server JARs. EggMorph must be public for anonymous player downloads."
     },
     {
       "name": "YUNGs Better Dungeons",

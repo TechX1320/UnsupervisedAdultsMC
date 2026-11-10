@@ -65,3 +65,15 @@ EggMorph v0.2.0-alpha.2 is pinned to its release SHA-256 in `pack/catalog.json`,
 EggMorph 0.2.0-alpha.3 is pinned in `pack/catalog.json` for both client and server. The prerelease now registers Morph Eggs as always-edible food (zero nutrition), waits until eating finishes to morph, and offers pre-imprinted Zombie, Cow, Bee eggs in Creative → Ingredients. A generic `/give @s eggmorph:morph_egg` has no Mob data and will not morph; for a specific mob use `/give @s eggmorph:morph_egg[minecraft:custom_data={Mob:"minecraft:zombie"}]`.
 
 The GitHub EggMorph repository remains private. Change its visibility to public (Settings → General → Danger Zone) before sharing the launcher; do not embed access tokens. Back up the server, remove the old EggMorph JAR, and install alpha3 on both sides. Test in Prism before making it required. Update and publish the modpack lock after testing.
+
+## 0.5.3-alpha - item UI and Distant Horizons stability
+
+- Removed the **EMI + REI duplicate item browser** from the curated setup. EMI remains; the launcher now moves manually installed REI JARs into a *reversible backup*, not the Trash.
+- Manually added **C2ME alpha** is also isolated when Distant Horizons is installed, to avoid altering DH generation behavior while troubleshooting. This is a stability precaution, **not proof** that C2ME crashes this pack.
+- Extra older EggMorph JARs are backed up automatically when the new checksum-verified EggMorph is installed.
+- **Distant Horizons now installs on BOTH client and Fabric server**. To actually stream beyond-view-distance terrain on a brand new SMP, the existing Crafty instance must receive the matching JAR; updating the Windows EXE alone is insufficient.
+- Distant Horizons 3.3.3 updates its settings schema and can reset old settings. On client, open **Options > Distant Horizons** and enable rendering, set LOD distance conservatively (128-256 chunks to start), and temporarily disable shaders to confirm distant LODs exist. Shaders must support Iris+DH. If the client cannot see far-away terrain on multiplayer, check the server-side DH support state in F3 and enable/generate server LODs as needed.
+- EggMorph is **Alpha 4** with actual native spawn egg items, no eating for those items, and model jitter reduction. Back up and update the matching JAR on Crafty after the client test.
+
+Check/Repair creates `.minecraft/ua-disabled-mods/README.txt` describing everything it moved. You can undo those moves after quitting Minecraft; nothing is deleted. Do not delete or reset the live world for any of these changes.
+

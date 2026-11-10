@@ -1,5 +1,17 @@
 # Unsupervised Adults MC
 
+## 0.5.3-alpha - item UI and Distant Horizons stability
+
+- Removed the **EMI + REI duplicate item browser** from the curated setup. EMI remains; the launcher now moves manually installed REI JARs into a *reversible backup*, not the Trash.
+- Manually added **C2ME alpha** is also isolated when Distant Horizons is installed, to avoid altering DH generation behavior while troubleshooting. This is a stability precaution, **not proof** that C2ME crashes this pack.
+- Extra older EggMorph JARs are backed up automatically when the new checksum-verified EggMorph is installed.
+- **Distant Horizons now installs on BOTH client and Fabric server**. To actually stream beyond-view-distance terrain on a brand new SMP, the existing Crafty instance must receive the matching JAR; updating the Windows EXE alone is insufficient.
+- Distant Horizons 3.3.3 updates its settings schema and can reset old settings. On client, open **Options > Distant Horizons** and enable rendering, set LOD distance conservatively (128-256 chunks to start), and temporarily disable shaders to confirm distant LODs exist. Shaders must support Iris+DH. If the client cannot see far-away terrain on multiplayer, check the server-side DH support state in F3 and enable/generate server LODs as needed.
+- EggMorph is **Alpha 4** with actual native spawn egg items, no eating for those items, and model jitter reduction. Back up and update the matching JAR on Crafty after the client test.
+
+Check/Repair creates `.minecraft/ua-disabled-mods/README.txt` describing everything it moved. You can undo those moves after quitting Minecraft; nothing is deleted. Do not delete or reset the live world for any of these changes.
+
+
 **EggMorph 0.2.0-alpha.3 edible-egg fix (pack 0.5.2-alpha):** Morph Eggs now have an always-edible food component, trigger eating animation, and morph after consumption even at full hunger. Creative Ingredients contains Zombie, Cow and Bee test eggs with real mob data. A plain `/give @s eggmorph:morph_egg` creates an unbound egg and cannot morph. Use `/give @s eggmorph:morph_egg[minecraft:custom_data={Mob:"minecraft:zombie"}]`. The official alpha3 release is checksum-pinned but the private EggMorph repo must be made public for automatic client downloads. Remove old copies of EggMorph from client/server mods and test Alpha3 on both sides before inviting players. **No modpack lock is currently published; run `update_pack.cmd` and commit its `pack/pack-lock.json` after checking all resolved versions.**
 
 

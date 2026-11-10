@@ -256,6 +256,13 @@ class Launcher:
         prism.migrate_legacy(self.app_dir, instance, status)
         result = core.install_client(lock, instance, status,
                                      lambda value: self._emit("progress", .08 + value * .9))
+        if result.get("quarantined"):
+            lines = [x["name"] + " - " + x["reason"] for x in result["quarantined"]]
+            status("Moved conflicting unmanaged mods to .minecraft/ua-disabled-mods; no files deleted.")
+            self._emit("notice", "Modpack conflict cleanup (safe backup):\n\n"
+                       + "\n".join(lines) + "\n\n"
+                       + "These JARs were moved to the game folder's ua-disabled-mods folder. "
+                       + "You can restore them manually after quitting Minecraft.")
         missing = core.manual_warnings(lock) + result["failed"]
         status(f"Modpack: {result['count']} files checked, {result['updated']} updated, "
                f"{len(missing)} manual/unavailable.")
