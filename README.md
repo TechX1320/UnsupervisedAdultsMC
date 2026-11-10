@@ -1,5 +1,8 @@
 # Unsupervised Adults MC
 
+**EggMorph 0.2.0-alpha.3 edible-egg fix (pack 0.5.2-alpha):** Morph Eggs now have an always-edible food component, trigger eating animation, and morph after consumption even at full hunger. Creative Ingredients contains Zombie, Cow and Bee test eggs with real mob data. A plain `/give @s eggmorph:morph_egg` creates an unbound egg and cannot morph. Use `/give @s eggmorph:morph_egg[minecraft:custom_data={Mob:"minecraft:zombie"}]`. The official alpha3 release is checksum-pinned but the private EggMorph repo must be made public for automatic client downloads. Remove old copies of EggMorph from client/server mods and test Alpha3 on both sides before inviting players. **No modpack lock is currently published; run `update_pack.cmd` and commit its `pack/pack-lock.json` after checking all resolved versions.**
+
+
 **EggMorph 0.2.0 Alpha 2 hotfix (pack 0.5.1-alpha):** The source JAR's client mixin configuration previously omitted the bundled refmap reference. The corrected prerelease builds and validates, but has not yet been tested on the affected Prism client. Its new GitHub release is SHA-256-pinned in `pack/catalog.json` and remains **optional**. Before enabling downloads for friends, the owner must make `TechX1320/EggMorph` public in GitHub repository settings, remove any previous EggMorph JARs from client/server `mods/`, and test with the new release. Do not publish an old lock or keep duplicate versions. The connected GitHub tools do not provide a repository-visibility change action.
 
 

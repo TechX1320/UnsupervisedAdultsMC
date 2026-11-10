@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "pack_version": "0.5.1-alpha",
+  "pack_version": "0.5.2-alpha",
   "name": "Unsupervised SMP",
   "minecraft_version": "1.21.1",
   "fabric_loader_version": "0.19.5",
@@ -424,9 +424,9 @@
       "type": "mod",
       "side": "both",
       "required": false,
-      "url": "https://github.com/TechX1320/EggMorph/releases/download/v0.2.0-alpha.2/eggmorph-0.2.0-alpha.2.jar",
-      "sha256": "98bba8ee0d327521f6c20917446f3ac73848338b47522ac291ab02e9abee8760",
-      "note": "EggMorph 0.2.0 Alpha 2 contains an unconfirmed client-startup refmap hotfix. The private GitHub repository must be made public by the owner before anonymous launcher downloads will work. Keep optional until in-game testing succeeds."
+      "url": "https://github.com/TechX1320/EggMorph/releases/download/v0.2.0-alpha.3/eggmorph-0.2.0-alpha.3.jar",
+      "sha256": "d54377ca08d6a1b765b6d8f9593cdb120fbd760079cff1bc6479493efa0122df",
+      "note": "Alpha 3 makes Morph Eggs always edible (including at full hunger) and adds creative test eggs for Zombie, Cow and Bee; compiled and prereleased but not yet tested end-to-end in the affected Prism SMP. The owner must make the EggMorph repository public to let the launcher download it without authentication. Install exactly one matching JAR on client and server."
     },
     {
       "name": "YUNGs Better Dungeons",

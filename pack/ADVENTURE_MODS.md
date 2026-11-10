@@ -59,3 +59,9 @@ All entries below have Modrinth project pages for 1.21.1/Fabric. The resolver st
 ## EggMorph client startup hotfix
 
 EggMorph v0.2.0-alpha.2 is pinned to its release SHA-256 in `pack/catalog.json`, but remains optional while the new Fabric client refmap fix is tested. For the automatic download to work, the owner must change the private EggMorph repository to **public** through GitHub settings. The first test should replace the old JAR on the Prism client; after confirming startup and multiplayer, replace the server JAR too, avoiding duplicate versions.
+
+## EggMorph Alpha 3 edible-eggs test
+
+EggMorph 0.2.0-alpha.3 is pinned in `pack/catalog.json` for both client and server. The prerelease now registers Morph Eggs as always-edible food (zero nutrition), waits until eating finishes to morph, and offers pre-imprinted Zombie, Cow, Bee eggs in Creative → Ingredients. A generic `/give @s eggmorph:morph_egg` has no Mob data and will not morph; for a specific mob use `/give @s eggmorph:morph_egg[minecraft:custom_data={Mob:"minecraft:zombie"}]`.
+
+The GitHub EggMorph repository remains private. Change its visibility to public (Settings → General → Danger Zone) before sharing the launcher; do not embed access tokens. Back up the server, remove the old EggMorph JAR, and install alpha3 on both sides. Test in Prism before making it required. Update and publish the modpack lock after testing.
