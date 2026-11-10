@@ -16,6 +16,7 @@ import webbrowser
 
 import ua_core as core
 import ua_prism as prism
+import ua_server
 
 BG = "#16121f"
 PANEL = "#211a31"
@@ -133,6 +134,7 @@ class Launcher:
             ("ACCOUNT / SETTINGS", self.login_click),
             ("CHECK / UPDATE MODS", self.update_click),
             ("OPEN GAME FOLDER", self.folder_click),
+            ("CREATE SERVER ZIP", self.create_server_click),
         ]
         self.small_buttons = []
         for label, action in options:
@@ -283,6 +285,30 @@ class Launcher:
         status("Starting our SMP instance through Prism. Prism handles Minecraft, Java and Fabric.")
         prism.launch_instance(self.app_dir, exe, server)
         return "MINECRAFT LAUNCH REQUESTED"
+
+    def create_server_click(self):
+        """Owner-only convenience button; it never contacts Crafty directly."""
+        self._run(self._create_server_zip)
+
+    def _create_server_zip(self) -> str:
+        status = lambda message: self._emit("log", message)
+        catalog = core.get_remote_catalog(status)
+        lock = core.load_lock(catalog, self.app_dir, status)
+        archive = ua_server.build_server_zip(
+            self.app_dir, catalog, lock, status=status,
+            progress=lambda fraction: self._emit("progress", fraction),
+        )
+        self._emit("notice", "Crafty server ZIP created!\n\n"
+                   + str(archive) + "\n\n"
+                   "In Crafty: Create New Server > Upload Zip Archive. "
+                   "Choose the ZIP root and fabric-server-launch.jar as the executable. "
+                   "Use Java 21. Read CRAFTY-IMPORT.txt before starting.")
+        if os.name == "nt":
+            try:
+                os.startfile(str(archive.parent))
+            except OSError as exc:
+                status("Could not open the ZIP folder automatically: " + str(exc))
+        return "CRAFTY SERVER ZIP READY"
 
     def folder_click(self):
         folder = prism.data_dir(self.app_dir) / "instances" / core.PACK_ID / ".minecraft"

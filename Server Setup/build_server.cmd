@@ -23,12 +23,13 @@ echo Step 1 of 2: Pin 1.21.1 Fabric mod versions and dependencies...
 %PYCMD% tools\update_pack.py
 if errorlevel 1 goto :error
 echo.
-echo Step 2 of 2: Download verified server JARs...
-%PYCMD% tools\export_server.py
+echo Step 2 of 2: Download verified server JARs and build Crafty import ZIP...
+%PYCMD% tools\create_crafty_server.py
 if errorlevel 1 goto :error
 echo.
 echo SUCCESS. Mods are in "Server Setup\mods".
-echo Also see "Server Setup\installed-mods.md" and "Server Setup\unavailable-mods.txt".
+echo Upload the UnsupervisedSMP-Crafty-*.zip from Server Setup with Crafty Zip Import.
+echo See CRAFTY-IMPORT.txt inside the archive for import settings.
 echo IMPORTANT: Commit pack\catalog.json and pack\pack-lock.json to GitHub main.
 echo WARNING: Stop Crafty and back up your world before uploading files.
 pause

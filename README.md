@@ -45,8 +45,10 @@ If you tested the old direct-launch version, the new launcher automatically **mo
 
 - Edit `pack/catalog.json` to select compatible mods. Increment `pack_version` when changing them.
 - Run **`update_pack.cmd`** to resolve and hash exact 1.21.1 Fabric Modrinth releases and dependencies. Review `pack/resolution-report.txt`, then commit `pack/catalog.json` and **`pack/pack-lock.json`** to `main`. Clients fetch only changed files, verify hashes, and remove only files previously managed by our updater.
-- Run **`export_server_pack.cmd`** to create a matching set of `server` + `both` mod JARs for Crafty. Fabric itself is installed/configured on the Debian server separately. Keep **online-mode=true**, **white-list=true**, **enforce-whitelist=true**; add each friend through the server console.
-- Mods not legally available for automated downloads are reported (e.g. **Cinematic Interactions**); they must have an authorized direct source or be installed manually. Experimental **EggMorph**'s release repository is presently private, so friends cannot fetch that JAR without access. **Voxy** remains disabled on 1.21.1; the catalog lists Distant Horizons instead. Shaders and resource packs download without being forced on.
+- **New: `CREATE SERVER ZIP`** in the launcher builds a full **Crafty-importable Fabric 1.21.1 server** containing the Fabric server launcher JAR, `server.properties` and matching `server` + `both` mod JARs. The archive is written to `UnsupervisedAdultsMC_Data/Server Setup/UnsupervisedSMP-Crafty-<pack version>.zip` beside the EXE. The first server start downloads remaining Fabric/Minecraft dependencies through Fabric's official launcher. In Crafty's **Upload Zip Archive** panel, choose this archive, use its root, select `fabric-server-launch.jar` as executable, and use Java 21. Review `CRAFTY-IMPORT.txt` inside.
+- **Owner CLI alternative:** run `Server Setup/build_server.cmd` after pulling source. It resolves the exact pinned mod versions and generates the same complete Crafty ZIP under the repository's `Server Setup/` folder. `export_server_pack.cmd` remains available to create a **mods-only update ZIP** for an existing server.
+- Preserve **online-mode=true**, **white-list=true**, **enforce-whitelist=true**; add each friend through the Crafty console. The new server ZIP does not contain an accepted EULA, world, passwords, or Crafty credentials.
+- Mods not available for permitted automatic downloads are reported (e.g. **Cinematic Interactions**); they need an authorized source or manual installation. **EggMorph**'s GitHub repo is **private**, so public launcher clients receive a download error. If you own the JAR, download it from your signed-in private release and place `eggmorph-0.2.0-alpha.jar` into the owner-side `Server Setup/mods/` cache before making the Crafty ZIP; a matching SHA-256 is required. **To make EggMorph automatically downloadable for friends, publish the compiled JAR at a publicly accessible HTTPS location and update the catalog URL/lock.** Do not embed GitHub access tokens in a launcher. EggMorph remains experimental and should be tested separately. **Voxy** remains disabled on 1.21.1; the catalog lists Distant Horizons instead. Shaders/resource packs download without being force-enabled.
 - The launcher EXE is *not* self-updating. For changes to the launcher program itself, rebuild and share a new EXE. The modpack can update independently from GitHub.
 
 ## Architecture and limits
@@ -54,6 +56,7 @@ If you tested the old direct-launch version, the new launcher automatically **mo
 - `launcher.py`: custom Tkinter GUI / one-click modpack update + Play
 - `ua_prism.py`: official pinned Prism portable bootstrap, instance profile, optional migration, CLI launch
 - `ua_core.py`: Modrinth/GitHub modpack resolver and checksum-verified updates
+- `ua_server.py`: owner-only full Crafty server ZIP builder (Fabric launcher, JARs, properties, reports)
 - `pack/catalog.json`: selected modpack items and Minecraft/Fabric versions
 - `tools/` and the `.cmd` scripts: owner-only pack generation/export
 - `tests/`: mocked unit tests; no tokens and no live Minecraft install required to run them
@@ -67,3 +70,7 @@ The modpack is now themed **Unsupervised SMP** with exploration biomes, structur
 For optional owner-supplied resource packs, run [`Server Setup/merge_resourcepacks.cmd`](Server%20Setup/merge_resourcepacks.cmd) to build a combined 1.21.1 ZIP. Most client visual packs should remain separate under the custom launcher's automatically installed `resourcepacks/` directory—there's no need to merge Fresh Animations, Better Crops, or Solas shaders into a server pack. Only merge assets you are licensed to redistribute.
 
 **Important:** Adding biome generators, ores, and structure mods is best done with a **fresh world**. Server and clients must use the same generated `pack/pack-lock.json`. Preserve `online-mode=true` and the whitelist; players don't get Crafty access.
+
+## Create Server ZIP button (quick reference)
+
+Run the newly built `UnsupervisedAdultsMC.exe`, click **CREATE SERVER ZIP**, and upload the generated archive using the **right-side Upload Zip Archive** section in Crafty's Create New Server page. This **does not upload the ZIP for you** or require your Crafty password. The file is stored beside the EXE under `UnsupervisedAdultsMC_Data/Server Setup/`. Select the ZIP root and executable `fabric-server-launch.jar`; use Java 21 and confirm the Minecraft EULA when Crafty prompts. The ZIP is for creating a **new** server; back up existing worlds separately and do not overwrite them with a new-generation pack. Read `Server Setup/README.md` for troubleshooting.

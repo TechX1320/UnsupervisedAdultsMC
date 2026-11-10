@@ -21,3 +21,7 @@ dist/
 /Server Setup/resourcepacks/output/*.zip
 /Server Setup/resourcepacks/output/*.properties
 /Server Setup/resourcepacks/output/*.txt
+
+/Server Setup/fabric-server-launch.jar
+/Server Setup/UnsupervisedSMP-Crafty-*.zip
+/Server Setup/*.zip.tmp

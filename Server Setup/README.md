@@ -10,7 +10,9 @@ Server Setup/
   mods/                         <-- Actual server .jar files appear here after running
   installed-mods.md             <-- Generated exact names and versions
   unavailable-mods.txt          <-- Generated report of manual/failed mods
-  UnsupervisedSMP-ServerMods-*.zip  <-- Generated convenient ZIP for Crafty
+  fabric-server-launch.jar       <-- Downloaded official Fabric server executable
+  UnsupervisedSMP-Crafty-*.zip    <-- Full NEW-SERVER ZIP for Crafty Import
+  UnsupervisedSMP-ServerMods-*.zip  <-- Older mods-only update ZIP (optional)
   server.properties.example     <-- Whitelist / server resource-pack examples
   merge_resourcepacks.cmd       <-- Optional: merge permitted resource packs
   resourcepacks/
@@ -18,13 +20,26 @@ Server Setup/
     output/                     <-- Merged ZIP, checksum, collision report
 ```
 
-The repository does **not** contain downloaded third-party JAR binaries. The generator downloads the correct files directly from their original Modrinth/GitHub release sources with checksums, and writes them into `mods/`. This avoids shipping outdated binaries and respects authors' distribution requirements.
+The repository does **not** contain downloaded third-party JAR binaries. The generator downloads the correct files directly from their original Modrinth/GitHub release sources with checksums, and writes them into `mods/`. A separate HTTPS download from Fabric provides the executable server launcher. This avoids shipping outdated binaries and respects authors' distribution requirements.
 
-## First setup (Crafty Controller on Debian)
+## One-click Crafty import from our launcher (recommended)
+
+1. Build the latest `UnsupervisedAdultsMC.exe` locally using the repo `build.cmd`. The **CREATE SERVER ZIP** button is for the server owner; your friends just use **PLAY SMP**.
+2. Open the EXE and click **CREATE SERVER ZIP**. It downloads the official **Fabric 1.21.1 server launcher** from Fabric's versioned endpoint and SHA-verified compatible server/shared mods. Output: `UnsupervisedAdultsMC_Data/Server Setup/UnsupervisedSMP-Crafty-<pack version>.zip` **beside your EXE**. You do **not** need Crafty API access or to install the server on your Windows PC.
+3. On Crafty's **Create New Server** page, use the **Upload Zip Archive** section at the right (not the normal Build Server button). Enter the name **UnsupervisedSMP**, browse for the generated ZIP, click **Upload**, then **Import Server**. In the import wizard select the archive's **root directory**, where `fabric-server-launch.jar` and `server.properties` are together.
+4. Select executable **`fabric-server-launch.jar`**, **Java 21**, port **25565** (or your chosen forwarded port), minimum RAM **2 GB** and maximum **6 GB** as an initial test. If Crafty does not create the command correctly, set **`java -Xms2G -Xmx6G -jar fabric-server-launch.jar nogui`** in the server configuration. Fabric's official launcher fetches remaining Minecraft/Fabric files during first start. This ZIP contains no world or automatically accepted EULA; confirm Minecraft's EULA only when Crafty asks you.
+5. **First start, confirm whitelist settings** from `server.properties`, read the Fabric logs for missing dependencies, and add friends with `whitelist add PlayerName`. Back up before making changes. Start a **fresh world** because of biomes, structures and ores.
+6. Keep the client and Crafty mod sets tied to the same published `pack/pack-lock.json`. Until you commit the lock to the public GitHub repository, the launcher's resolver may pick different versions at different times.
+
+**EggMorph:** the current URL points to your *private* EggMorph GitHub release; anonymous requests fail. The built ZIP will report it as optional/missing. As the repo owner, you can download `eggmorph-0.2.0-alpha.jar` while signed in and put it in the generated `Server Setup/mods/` folder before clicking the button again; if the binary SHA-256 matches the catalog, the ZIP builder will include it **without attempting the private download**. Players still need the JAR: for automatic updates you'll need a **publicly accessible compiled JAR** and a new catalog URL + lock. Do not give friends a GitHub access token. EggMorph remains an untested alpha; leave it off the public SMP until verified.
+
+**Server resource packs:** the server supports one `resource-pack=` URL, but client-side packs can be layered and do not need to be merged. The optional resource-pack merge tool is separate and only for assets you have permission to redistribute.
+
+## Alternative: updating a Fabric server that already exists in Crafty
 
 1. **Make a backup** of any existing world and server files. Ideally start a **brand-new world** for the new biomes, ores, and structures. Existing chunks do not regenerate simply because you installed mods.
 2. In Crafty, create/select a **Fabric 1.21.1 dedicated server** running **Java 21**. Do not choose Paper, Spigot, Forge or NeoForge. Start it once, then stop it so the standard folders are created. Ensure your Fabric Loader version matches `pack/catalog.json`.
-3. On your **Windows PC**, download this GitHub repo and run **`Server Setup/build_server.cmd`**. It first resolves/pins the 1.21.1 Fabric mods and their required dependencies, then downloads the server-only and shared JARs to `Server Setup/mods/`, plus a ZIP. Python 3.11+ is needed **only on this owner PC**, not for your friends or the Debian server.
+3. On your **Windows PC**, download this GitHub repo, run **`update_pack.cmd`** to pin the 1.21.1 Fabric mods, and run **`export_server_pack.cmd`** to produce the older **mods-only** ZIP plus verified server/shared JARs in `Server Setup/mods/`. For a whole **new** Crafty instance, use the launcher **CREATE SERVER ZIP** button or `Server Setup/build_server.cmd` instead. Python 3.11+ is needed **only on this owner PC**, not for your friends or the Debian server.
 4. Open `Server Setup/installed-mods.md` and `unavailable-mods.txt`. **Do not start the real SMP if required mods failed**. If the optional EggMorph JAR is unavailable, remember its repo is private and the current build is experimental.
 5. **Stop Crafty server**, back it up again, then upload the contents of `Server Setup/mods/` into the **server's own** `mods/` folder via Crafty. Replace older versions; do not leave duplicate versions of the same mod. *Do not* upload Sodium, Iris, shaders, or client-only effects.
 6. In Crafty's `server.properties`, set these values:
@@ -42,7 +57,7 @@ The repository does **not** contain downloaded third-party JAR binaries. The gen
 
 ### Updating later
 
-Back up your world, stop the server, re-run `build_server.cmd`, review reports, upload new/replacement JARs, restart, then publish the updated lock. The script manages only its own previously downloaded JARs in the **local generated** `mods/` folder. It does not directly access or delete your Crafty server files.
+Back up your world, stop the server, re-run `update_pack.cmd` followed by `export_server_pack.cmd` for an existing server (or **CREATE SERVER ZIP** for a brand-new instance), review reports, upload new/replacement JARs, restart, then publish the updated lock. The script manages only its own previously downloaded JARs in the **local generated** `mods/` folder. It does not directly access or delete your Crafty server files.
 
 **Changing biome generators or ore generation mid-world is especially risky.** New content appears only in new chunks and may create hard biome seams; removing a worldgen mod can break existing save data. World generation mods are best finalized before launching the public SMP.
 
