@@ -9,3 +9,15 @@ dist/
 .DS_Store
 
 /UnsupervisedAdultsMC_Data/
+
+# Generated server JARs / world builds (download originals; don't redistribute in source)
+/Server Setup/mods/*.jar
+/Server Setup/.server-managed.json
+/Server Setup/installed-mods.md
+/Server Setup/unavailable-mods.txt
+/Server Setup/UnsupervisedSMP-ServerMods-*.zip
+/Server Setup/server-backups/
+/Server Setup/resourcepacks/input/*.zip
+/Server Setup/resourcepacks/output/*.zip
+/Server Setup/resourcepacks/output/*.properties
+/Server Setup/resourcepacks/output/*.txt

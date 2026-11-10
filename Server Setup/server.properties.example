@@ -1,0 +1,12 @@
+# Example values for the Unsupervised SMP dedicated Fabric server.
+# Add/change these inside Crafty; do not blindly replace a working server.properties.
+# Use Fabric server Minecraft 1.21.1, Java 21.
+level-name=UnsupervisedSMP
+motd=Unsupervised SMP | Exploration, Chaos, Questionable Decisions
+online-mode=true
+white-list=true
+enforce-whitelist=true
+# Optional: if you create + HOST a merged server resource pack over HTTPS:
+resource-pack=
+resource-pack-sha1=
+require-resource-pack=false

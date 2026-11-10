@@ -1,9 +1,12 @@
-"""Prepare server-only/both-side mod jars for uploading through Crafty.
+"""Build an audited Crafty/Fabric server mods folder from the pinned client/server lock.
 
-Does not modify the user's Debian server, stop the game, or touch world files.
+Mod JARs are obtained from original publisher links with checksum verification.
+They are deliberately not committed to GitHub or redistributed in source archives.
 """
-from pathlib import Path
+from __future__ import annotations
+
 import json
+from pathlib import Path
 import sys
 import tempfile
 import zipfile
@@ -13,44 +16,119 @@ sys.path.insert(0, str(ROOT))
 import ua_core as core
 
 
-def main():
-    catalog = json.loads((ROOT / "pack" / "catalog.json").read_text(encoding="utf-8"))
-    lockfile = ROOT / "pack" / "pack-lock.json"
-    if not lockfile.exists():
-        raise SystemExit("Run update_pack.cmd first. A pinned pack-lock.json is required.")
-    lock = json.loads(lockfile.read_text(encoding="utf-8"))
+def _read_json(path: Path, default):
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return default
+
+
+def _server_entries(lock: dict) -> list[dict]:
+    return sorted((x for x in lock["files"]
+                   if x.get("side") in ("server", "both") and x["path"].startswith("mods/")),
+                  key=lambda x: x["path"].lower())
+
+
+def export_server(root: Path = ROOT, status=print, fetch=None) -> Path:
+    if fetch is None:
+        fetch = core.download_verified
+    root = Path(root)
+    setup = root / "Server Setup"
+    mods = setup / "mods"
+    catalog_file = root / "pack" / "catalog.json"
+    lock_file = root / "pack" / "pack-lock.json"
+    if not lock_file.is_file():
+        raise RuntimeError("No pinned pack/pack-lock.json. Run Server Setup/build_server.cmd first.")
+    catalog = json.loads(catalog_file.read_text(encoding="utf-8"))
+    lock = json.loads(lock_file.read_text(encoding="utf-8"))
     core.validate_lock(lock, catalog)
-    if core.unresolved_required(lock, side="server"):
-        raise SystemExit("Required server mods unavailable. Fix catalog first.")
-    entries = [f for f in lock["files"] if f.get("side") in ("server", "both") and f["path"].startswith("mods/")]
-    target = ROOT / ("UnsupervisedAdultsMC-server-" + lock["pack_version"] + ".zip")
-    with tempfile.TemporaryDirectory() as d:
-        stage = Path(d)
-        failed_downloads = []
-        for index, item in enumerate(entries, 1):
-            print(f"[{index}/{len(entries)}] {item['name']}")
-            dest = stage / item["path"]
-            try:
-                core.download_verified(item["url"], dest, item["hashes"])
-            except (OSError, ValueError, TimeoutError) as exc:
-                if item.get("required", False):
-                    raise RuntimeError("Required server mod download failed: " + item["name"]) from exc
-                print("Optional server mod unavailable: " + item["name"] + ": " + str(exc))
-                failed_downloads.append({"name": item["name"], "reason": str(exc), "page": item["url"]})
-        skipped = [x for x in lock.get("skipped", []) if x.get("side") in ("both", "server")]
-        skipped.extend(failed_downloads)
-        report = "\n".join(x["name"] + " - " + x.get("reason", "") + "\n" + x.get("page", "") for x in skipped)
-        (stage / "SERVER_README.txt").write_text(
-            "Unsupervised Adults SMP - Fabric 1.21.1 mods\n"
-            "Install Fabric server under Crafty separately. Upload the contents of the mods/ folder into the server's mods/ folder.\n"
-            "Keep online-mode=true, white-list=true, enforce-whitelist=true. Backup before updates.\n"
-            "Server-only or shared mods are included; no client shaders/visual mods.\n\n"
-            "Not automatically included:\n" + report + "\n", encoding="utf-8")
-        with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as z:
-            for file in stage.rglob("*"):
-                if file.is_file():
-                    z.write(file, file.relative_to(stage).as_posix())
-    print("Created " + str(target))
+    missing = core.unresolved_required(lock, side="server")
+    if missing:
+        raise RuntimeError("Required Fabric server mods unresolved: " + ", ".join(missing))
+    entries = _server_entries(lock)
+    if not entries:
+        raise RuntimeError("Pinned pack contains no server mods; refusing to produce an empty server package")
+    mods.mkdir(parents=True, exist_ok=True)
+    if mods.is_symlink():
+        raise RuntimeError("Server Setup/mods must be a real directory")
+    state = setup / ".server-managed.json"
+    old = set(_read_json(state, {}).get("files", []))
+    completed = []
+    failures = []
+    pending = []
+    with tempfile.TemporaryDirectory(prefix="server-mods-", dir=setup) as tmp:
+        staging = Path(tmp)
+        # Downloads finish and are validated before any existing server files change.
+        for i, item in enumerate(entries, 1):
+            filename = Path(item["path"]).name
+            target = mods / filename
+            if target.is_symlink():
+                raise RuntimeError("Unexpected symlink in mods folder: " + filename)
+            status(f"[{i}/{len(entries)}] {item['name']}")
+            if not core.matches(target, item["hashes"]):
+                candidate = staging / filename
+                try:
+                    fetch(item["url"], candidate, item["hashes"])
+                except (OSError, ValueError, TimeoutError) as exc:
+                    if item.get("required", False):
+                        raise RuntimeError(f"Required server mod '{item['name']}' failed: {exc}") from exc
+                    failures.append({"name": item["name"], "reason": str(exc), "page": item["url"]})
+                    status(f"Optional server mod skipped: {item['name']}: {exc}")
+                    continue
+                if not core.matches(candidate, item["hashes"]):
+                    raise RuntimeError("Downloaded server file failed checksum verification: " + filename)
+                pending.append((candidate, target))
+            completed.append(item)
+        # Commit: never touch manually added mods, only our previous managed files.
+        for candidate, target in pending:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            candidate.replace(target)
+        wanted = {Path(item["path"]).name for item in completed}
+        for old_filename in sorted(old - wanted):
+            if old_filename.endswith(".jar") and Path(old_filename).name == old_filename:
+                stale = mods / old_filename
+                if stale.is_file() and not stale.is_symlink():
+                    stale.unlink()
+                    status("Removed outdated managed jar: " + old_filename)
+        state.write_text(json.dumps({"pack_version": lock["pack_version"],
+                                     "files": sorted(wanted)}, indent=2) + "\n", encoding="utf-8")
+        report = [m for m in lock.get("skipped", [])
+                  if m.get("side") in ("server", "both") and "Disabled intentionally" not in m.get("reason", "")]
+        report.extend(failures)
+        (setup / "unavailable-mods.txt").write_text(
+            "\n\n".join(f"{m['name']}: {m.get('reason', '')}\n{m.get('page', '')}" for m in report) + "\n",
+            encoding="utf-8")
+        inventory = ["# Unsupervised SMP - Installed server mods", "",
+                     f"Pack: {lock['pack_version']} | Minecraft {lock['minecraft_version']} | Fabric", "",
+                     "Generated by build_server.cmd. Use the exact same lock file for clients.", ""]
+        for item in completed:
+            inventory.append(f"- **{item['name']}** - `{Path(item['path']).name}` - {item.get('version', 'pinned')}")
+        inventory.extend(["", f"Files: {len(completed)}. Unavailable/manual: {len(report)}.", "",
+                          "Manual entries: see unavailable-mods.txt. Never add client-only shaders to a dedicated server."])
+        (setup / "installed-mods.md").write_text("\n".join(inventory) + "\n", encoding="utf-8")
+        package = setup / ("UnsupervisedSMP-ServerMods-" + lock["pack_version"] + ".zip")
+        with zipfile.ZipFile(package, "w", zipfile.ZIP_DEFLATED) as bundle:
+            for item in completed:
+                filename = Path(item["path"]).name
+                bundle.write(mods / filename, arcname="mods/" + filename)
+            bundle.writestr("INSTALL.txt",
+                "Unsupervised SMP - Minecraft 1.21.1 Fabric dedicated server.\n"
+                "STOP server and BACK UP world first. Upload mods/*.jar to the server mods/ folder.\n"
+                "Use the matching client pack-lock.json. Do not upload shaders or client-only mods.\n"
+                "Keep online-mode=true, white-list=true, enforce-whitelist=true.\n"
+                "See the full Server Setup/README.md in the repository.\n")
+    status(f"Server pack ready: {len(completed)} jars -> {mods}")
+    status("Also created " + str(package))
+    if report:
+        status(f"NOTE: {len(report)} manual/unavailable entries; see unavailable-mods.txt")
+    return package
+
+
+def main():
+    try:
+        export_server()
+    except (RuntimeError, OSError, ValueError, KeyError) as exc:
+        raise SystemExit("Server setup failed: " + str(exc)) from exc
 
 
 if __name__ == "__main__":

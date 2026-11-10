@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "pack_version": "0.3.0-alpha",
-  "name": "Unsupervised Adults SMP",
+  "pack_version": "0.4.0-alpha",
+  "name": "Unsupervised SMP",
   "minecraft_version": "1.21.1",
   "fabric_loader_version": "0.16.14",
   "server_address": "",
@@ -271,6 +271,113 @@
       "side": "client"
     },
     {
+      "name": "Biomes O Plenty",
+      "slug": "biomes-o-plenty",
+      "type": "mod",
+      "side": "both",
+      "required": true,
+      "note": "New terrain, biomes and decorative blocks"
+    },
+    {
+      "name": "Naturalist",
+      "slug": "naturalist",
+      "type": "mod",
+      "side": "both",
+      "required": true,
+      "note": "Wildlife"
+    },
+    {
+      "name": "Critters and Companions",
+      "slug": "Yd4wb5wZ",
+      "type": "mod",
+      "side": "both",
+      "required": true,
+      "note": "Otters and tameable ferrets"
+    },
+    {
+      "name": "Friends and Foes",
+      "slug": "friends-and-foes",
+      "type": "mod",
+      "side": "both",
+      "required": true,
+      "note": "Vanilla-friendly new creatures"
+    },
+    {
+      "name": "Mythic Metals",
+      "slug": "mythicmetals",
+      "type": "mod",
+      "side": "both",
+      "required": true,
+      "note": "Ore, armor and tools"
+    },
+    {
+      "name": "Simply Swords",
+      "slug": "simply-swords",
+      "type": "mod",
+      "side": "both",
+      "required": true,
+      "note": "Adventure weapons and loot"
+    },
+    {
+      "name": "Better Combat",
+      "slug": "better-combat",
+      "type": "mod",
+      "side": "both",
+      "required": true,
+      "note": "Combat animations and interactions"
+    },
+    {
+      "name": "Artifacts",
+      "slug": "artifacts",
+      "type": "mod",
+      "side": "both",
+      "required": true,
+      "note": "Exploration-based treasure"
+    },
+    {
+      "name": "Waystones",
+      "slug": "waystones",
+      "type": "mod",
+      "side": "both",
+      "required": true,
+      "note": "Travel network for distant builds"
+    },
+    {
+      "name": "Comforts",
+      "slug": "comforts",
+      "type": "mod",
+      "side": "both",
+      "required": true,
+      "note": "Sleeping bags for adventure"
+    },
+    {
+      "name": "Bosses of Mass Destruction (experimental bosses)",
+      "slug": "bosses-of-mass-destruction",
+      "type": "mod",
+      "side": "both",
+      "required": false,
+      "enabled": false,
+      "note": "Enable after testing worldgen and EggMorph"
+    },
+    {
+      "name": "Simple Voice Chat (needs UDP port)",
+      "slug": "simple-voice-chat",
+      "type": "mod",
+      "side": "both",
+      "required": false,
+      "enabled": false,
+      "note": "Optional proximity voice; port forward UDP 24454"
+    },
+    {
+      "name": "Petting - Tame Any Mob (experimental)",
+      "slug": "petting",
+      "type": "mod",
+      "side": "both",
+      "required": false,
+      "enabled": false,
+      "note": "May conflict with mob morph mechanics and mob AI; test later"
+    },
+    {
       "name": "Better Than Mending",
       "slug": "better-than-mending",
       "type": "mod",
@@ -320,6 +427,47 @@
       "url": "https://github.com/TechX1320/EggMorph/releases/download/v0.2.0-alpha.1/eggmorph-0.2.0-alpha.jar",
       "sha256": "e795e5693bcb49aeb1a195aeaa25a4838a4587c69248b353831136cc1072c590",
       "note": "The EggMorph GitHub repository is private. This optional download will start working once the release is made public."
+    },
+    {
+      "name": "YUNGs Better Dungeons",
+      "slug": "yungs-better-dungeons",
+      "type": "mod",
+      "side": "server",
+      "required": true,
+      "note": "Expanded vanilla dungeons"
+    },
+    {
+      "name": "YUNGs Better Mineshafts",
+      "slug": "yungs-better-mineshafts",
+      "type": "mod",
+      "side": "server",
+      "required": true,
+      "note": "Interesting underground exploration"
+    },
+    {
+      "name": "Towns and Towers",
+      "slug": "towns-and-towers",
+      "type": "mod",
+      "side": "server",
+      "required": true,
+      "note": "More villages and outposts"
+    },
+    {
+      "name": "When Dungeons Arise",
+      "slug": "when-dungeons-arise",
+      "type": "mod",
+      "side": "server",
+      "required": true,
+      "note": "Large-scale dangerous landmarks"
+    },
+    {
+      "name": "Terralith (alternate terrain; do not combine without testing)",
+      "slug": "terralith",
+      "type": "mod",
+      "side": "server",
+      "required": false,
+      "enabled": false,
+      "note": "Not in the initial Biomes O Plenty world"
     }
   ]
 }

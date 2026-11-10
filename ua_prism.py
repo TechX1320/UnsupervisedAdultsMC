@@ -100,7 +100,7 @@ def ensure_instance(root: Path, catalog: dict) -> Path:
     if not cfg.is_file():
         cfg.write_text(
             "[General]\nConfigVersion=1.2\nInstanceType=OneSix\n"
-            "name=Unsupervised Adults SMP\niconKey=default\n",
+            "name=Unsupervised SMP\niconKey=default\n",
             encoding="utf-8",
         )
     if not meta.is_file():

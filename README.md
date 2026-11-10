@@ -59,3 +59,11 @@ If you tested the old direct-launch version, the new launcher automatically **mo
 - `tests/`: mocked unit tests; no tokens and no live Minecraft install required to run them
 
 Prism **11.1.1** Windows x64 portable is downloaded on first run from the [official release](https://github.com/PrismLauncher/PrismLauncher/releases/tag/11.1.1) and pinned to its published SHA256. We **do not bundle or modify Prism** in our EXE. Prism is licensed under [GPL-3.0](https://github.com/PrismLauncher/PrismLauncher/blob/develop/LICENSE), and all Prism/Minecraft/third-party software remains the work of its respective authors. Minecraft ownership and Microsoft sign-in remain required; no offline authentication bypass.
+
+## Unsupervised SMP - server-owner setup (Minecraft 1.21.1 Fabric)
+
+The modpack is now themed **Unsupervised SMP** with exploration biomes, structures, wildlife, tools, weapons and treasure. Run [`Server Setup/build_server.cmd`](Server%20Setup/build_server.cmd) on your **owner PC** to generate the actual server JARs under `Server Setup/mods/` plus a ZIP. The generated server folder and installed-mod list are not published as third-party binaries in GitHub. Follow the full **[Server Setup README](Server%20Setup/README.md)** before uploading files to Crafty.
+
+For optional owner-supplied resource packs, run [`Server Setup/merge_resourcepacks.cmd`](Server%20Setup/merge_resourcepacks.cmd) to build a combined 1.21.1 ZIP. Most client visual packs should remain separate under the custom launcher's automatically installed `resourcepacks/` directory—there's no need to merge Fresh Animations, Better Crops, or Solas shaders into a server pack. Only merge assets you are licensed to redistribute.
+
+**Important:** Adding biome generators, ores, and structure mods is best done with a **fresh world**. Server and clients must use the same generated `pack/pack-lock.json`. Preserve `online-mode=true` and the whitelist; players don't get Crafty access.
