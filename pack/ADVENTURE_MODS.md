@@ -55,3 +55,7 @@ All entries below have Modrinth project pages for 1.21.1/Fabric. The resolver st
 6. If too many structures overlap or spawn too frequently, tune structure spacing or disable one structure collection before committing to a permanent world.
 
 **Compatibility reality:** A 1.21.1 Fabric release page isn't proof that 100 mods work together. This is an expanded **alpha selection**, not a tested server installation. The catalog permits optional mods to be skipped and documents why; missing **required** dependencies block the pack.
+
+## EggMorph client startup hotfix
+
+EggMorph v0.2.0-alpha.2 is pinned to its release SHA-256 in `pack/catalog.json`, but remains optional while the new Fabric client refmap fix is tested. For the automatic download to work, the owner must change the private EggMorph repository to **public** through GitHub settings. The first test should replace the old JAR on the Prism client; after confirming startup and multiplayer, replace the server JAR too, avoiding duplicate versions.

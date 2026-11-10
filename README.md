@@ -1,5 +1,8 @@
 # Unsupervised Adults MC
 
+**EggMorph 0.2.0 Alpha 2 hotfix (pack 0.5.1-alpha):** The source JAR's client mixin configuration previously omitted the bundled refmap reference. The corrected prerelease builds and validates, but has not yet been tested on the affected Prism client. Its new GitHub release is SHA-256-pinned in `pack/catalog.json` and remains **optional**. Before enabling downloads for friends, the owner must make `TechX1320/EggMorph` public in GitHub repository settings, remove any previous EggMorph JARs from client/server `mods/`, and test with the new release. Do not publish an old lock or keep duplicate versions. The connected GitHub tools do not provide a repository-visibility change action.
+
+
 **One-click Windows launcher for the Unsupervised Adults SMP** — Minecraft Java **1.21.1**, **Fabric** and our maintained modpack. The EXE is our own interface. It uses the **official portable [Prism Launcher](https://prismlauncher.org/)** as an *external backend* for Microsoft account login, Minecraft installation, the Fabric loader, Java, and actually starting the game.
 
 **Crafty server ports:** The server ZIP builder now asks for the port actually allocated by Crafty. The ZIP stores that port in `server.properties` and its filename. If another server occupies `25565`, using the same port makes Unsupervised SMP fail even when every mod loads; change the port on the new ZIP or edit it on an existing instance. See `Server Setup/README.md`. Simply Tooltips is already included on both sides, while REI/Mod Menu/C2ME/Oracle Index are optional recommendations.

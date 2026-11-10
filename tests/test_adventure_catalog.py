@@ -15,7 +15,25 @@ class AdventurePackCatalogTests(unittest.TestCase):
         core.check_catalog(p)
         self.assertEqual(p['minecraft_version'], '1.21.1')
         self.assertEqual(p['fabric_loader_version'], '0.19.5')
-        self.assertEqual(p['pack_version'], '0.5.0-alpha')
+        self.assertEqual(p['pack_version'], '0.5.1-alpha')
+
+    def test_eggmorph_alpha2_hotfix_is_sha_pinned_and_optional(self):
+        pack = self.get_catalog()
+        eggs = [m for m in pack['mods'] if m['name'].startswith('EggMorph')]
+        self.assertEqual(len(eggs), 1)
+        egg = eggs[0]
+        self.assertEqual(egg['side'], 'both')
+        self.assertEqual(egg['source'], 'direct')
+        self.assertFalse(egg.get('required', False))
+        self.assertEqual(
+            egg['url'],
+            'https://github.com/TechX1320/EggMorph/releases/download/'
+            'v0.2.0-alpha.2/eggmorph-0.2.0-alpha.2.jar'
+        )
+        self.assertEqual(
+            egg['sha256'],
+            '98bba8ee0d327521f6c20917446f3ac73848338b47522ac291ab02e9abee8760'
+        )
 
     def test_no_duplicate_modrinth_projects(self):
         p=self.get_catalog()
