@@ -76,3 +76,9 @@ For optional owner-supplied resource packs, run [`Server Setup/merge_resourcepac
 ## Create Server ZIP button (quick reference)
 
 Run the newly built `UnsupervisedAdultsMC.exe`, click **CREATE SERVER ZIP**, and upload the generated archive using the **right-side Upload Zip Archive** section in Crafty's Create New Server page. This **does not upload the ZIP for you** or require your Crafty password. The file is stored beside the EXE under `UnsupervisedAdultsMC_Data/Server Setup/`. Select the ZIP root and executable `fabric-server-launch.jar`; use Java 21 and confirm the Minecraft EULA when Crafty prompts. The ZIP is for creating a **new** server; back up existing worlds separately and do not overwrite them with a new-generation pack. Read `Server Setup/README.md` for troubleshooting.
+
+## Unsupervised SMP 0.5.0-alpha — expanded adventures
+
+The catalog now includes exploration structures from **Dungeons and Taverns, Structory, Moog's Voyager/Nether/End Structures, Tidal Towns, and additional YUNG's overhauls**, plus Incendium and Nullscape terrain, additional wildlife/hostile mobs, travel equipment, cooking, furniture, Lootr, EMI, and server pregeneration. See **[pack/ADVENTURE_MODS.md](pack/ADVENTURE_MODS.md)** for the full theme and compatibility plan. Some high-impact or overlapping mods remain **disabled until tested**.
+
+**Important:** Run `update_pack.cmd` and commit the resulting `pack/pack-lock.json` before sharing a new client or Crafty server ZIP. Start a **fresh test world**: adding worldgen and structure mods to existing chunks does not regenerate them. Fabric Loader **0.19.5+** and Java **21** are still required.

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "pack_version": "0.4.1-alpha",
+  "pack_version": "0.5.0-alpha",
   "name": "Unsupervised SMP",
   "minecraft_version": "1.21.1",
   "fabric_loader_version": "0.19.5",
@@ -468,6 +468,399 @@
       "required": false,
       "enabled": false,
       "note": "Not in the initial Biomes O Plenty world"
+    },
+    {
+      "name": "Fabric Language Kotlin",
+      "slug": "fabric-language-kotlin",
+      "type": "mod",
+      "side": "both",
+      "group": "libraries",
+      "required": true
+    },
+    {
+      "name": "Simply Tooltips (Simply Swords dependency)",
+      "slug": "simply-tooltips",
+      "type": "mod",
+      "side": "both",
+      "group": "libraries",
+      "required": true
+    },
+    {
+      "name": "Moonlight Lib (Supplementaries/Amendments)",
+      "slug": "moonlight",
+      "type": "mod",
+      "side": "both",
+      "group": "libraries",
+      "required": true
+    },
+    {
+      "name": "Moog's Structure Lib",
+      "slug": "moogs-structure-lib",
+      "type": "mod",
+      "side": "server",
+      "group": "libraries",
+      "required": true
+    },
+    {
+      "name": "Lithostitched (worldgen compatibility)",
+      "slug": "lithostitched",
+      "type": "mod",
+      "side": "server",
+      "group": "libraries",
+      "required": false
+    },
+    {
+      "name": "Dungeons and Taverns",
+      "slug": "dungeons-and-taverns",
+      "type": "mod",
+      "side": "server",
+      "group": "dungeons",
+      "required": false
+    },
+    {
+      "name": "Structory - atmospheric ruins",
+      "slug": "structory",
+      "type": "mod",
+      "side": "server",
+      "group": "dungeons",
+      "required": false
+    },
+    {
+      "name": "Structory: Towers",
+      "slug": "structory-towers",
+      "type": "mod",
+      "side": "server",
+      "group": "dungeons",
+      "required": false
+    },
+    {
+      "name": "Moog's Voyager Structures",
+      "slug": "moogs-voyager-structures",
+      "type": "mod",
+      "side": "server",
+      "group": "dungeons",
+      "required": false
+    },
+    {
+      "name": "Moog's Nether Structures",
+      "slug": "mns-moogs-nether-structures",
+      "type": "mod",
+      "side": "server",
+      "group": "dungeons",
+      "required": false
+    },
+    {
+      "name": "Moog's End Structures",
+      "slug": "mes-moogs-end-structures",
+      "type": "mod",
+      "side": "server",
+      "group": "dungeons",
+      "required": false
+    },
+    {
+      "name": "Tidal Towns",
+      "slug": "tidal-towns",
+      "type": "mod",
+      "side": "server",
+      "group": "dungeons",
+      "required": false
+    },
+    {
+      "name": "YUNG's Better Strongholds",
+      "slug": "yungs-better-strongholds",
+      "type": "mod",
+      "side": "server",
+      "group": "dungeons",
+      "required": false
+    },
+    {
+      "name": "YUNG's Better Desert Temples",
+      "slug": "yungs-better-desert-temples",
+      "type": "mod",
+      "side": "server",
+      "group": "dungeons",
+      "required": false
+    },
+    {
+      "name": "YUNG's Better Nether Fortresses",
+      "slug": "yungs-better-nether-fortresses",
+      "type": "mod",
+      "side": "server",
+      "group": "dungeons",
+      "required": false
+    },
+    {
+      "name": "YUNG's Better Ocean Monuments",
+      "slug": "yungs-better-ocean-monuments",
+      "type": "mod",
+      "side": "server",
+      "group": "dungeons",
+      "required": false
+    },
+    {
+      "name": "YUNG's Bridges",
+      "slug": "yungs-bridges",
+      "type": "mod",
+      "side": "server",
+      "group": "dungeons",
+      "required": false
+    },
+    {
+      "name": "YUNG's Better Witch Huts",
+      "slug": "yungs-better-witch-huts",
+      "type": "mod",
+      "side": "server",
+      "group": "dungeons",
+      "required": false,
+      "enabled": false
+    },
+    {
+      "name": "YUNG's Better Jungle Temples",
+      "slug": "yungs-better-jungle-temples",
+      "type": "mod",
+      "side": "server",
+      "group": "dungeons",
+      "required": false,
+      "enabled": false
+    },
+    {
+      "name": "Incendium - Nether overhaul",
+      "slug": "incendium",
+      "type": "mod",
+      "side": "server",
+      "group": "worldgen",
+      "required": false
+    },
+    {
+      "name": "Nullscape - End terrain overhaul",
+      "slug": "nullscape",
+      "type": "mod",
+      "side": "server",
+      "group": "worldgen",
+      "required": false
+    },
+    {
+      "name": "Farmer's Delight Refabricated",
+      "slug": "farmers-delight-refabricated",
+      "type": "mod",
+      "side": "both",
+      "group": "home",
+      "required": false
+    },
+    {
+      "name": "Supplementaries",
+      "slug": "supplementaries",
+      "type": "mod",
+      "side": "both",
+      "group": "home",
+      "required": false
+    },
+    {
+      "name": "Amendments",
+      "slug": "amendments",
+      "type": "mod",
+      "side": "both",
+      "group": "home",
+      "required": false
+    },
+    {
+      "name": "Another Furniture",
+      "slug": "another-furniture",
+      "type": "mod",
+      "side": "both",
+      "group": "home",
+      "required": false
+    },
+    {
+      "name": "[Let's Do] Furniture (more decorative blocks)",
+      "slug": "lets-do-furniture",
+      "type": "mod",
+      "side": "both",
+      "group": "home",
+      "required": false,
+      "enabled": false
+    },
+    {
+      "name": "Lootr - individual dungeon loot",
+      "slug": "lootr",
+      "type": "mod",
+      "side": "both",
+      "group": "exploration",
+      "required": false
+    },
+    {
+      "name": "Nature's Compass",
+      "slug": "natures-compass",
+      "type": "mod",
+      "side": "both",
+      "group": "exploration",
+      "required": false
+    },
+    {
+      "name": "Explorer's Compass",
+      "slug": "explorers-compass",
+      "type": "mod",
+      "side": "both",
+      "group": "exploration",
+      "required": false
+    },
+    {
+      "name": "Creeper Overhaul",
+      "slug": "creeper-overhaul",
+      "type": "mod",
+      "side": "both",
+      "group": "mobs",
+      "required": false
+    },
+    {
+      "name": "Illager Invasion",
+      "slug": "illager-invasion",
+      "type": "mod",
+      "side": "both",
+      "group": "mobs",
+      "required": false
+    },
+    {
+      "name": "Mutant Monsters",
+      "slug": "mutant-monsters",
+      "type": "mod",
+      "side": "both",
+      "group": "mobs",
+      "required": false
+    },
+    {
+      "name": "More Mobs - visual mob variants",
+      "slug": "more-mobs",
+      "type": "mod",
+      "side": "server",
+      "group": "mobs",
+      "required": false
+    },
+    {
+      "name": "Breed More Mobs - extra tameable creatures",
+      "slug": "breed-more-mobs",
+      "type": "mod",
+      "side": "server",
+      "group": "mobs",
+      "required": false
+    },
+    {
+      "name": "ModernFix",
+      "slug": "modernfix",
+      "type": "mod",
+      "side": "both",
+      "group": "performance",
+      "required": false
+    },
+    {
+      "name": "Chunky - chunk pregeneration",
+      "slug": "chunky",
+      "type": "mod",
+      "side": "server",
+      "group": "performance",
+      "required": false
+    },
+    {
+      "name": "Noisium - alternate worldgen performance",
+      "slug": "noisium",
+      "type": "mod",
+      "side": "server",
+      "group": "performance",
+      "required": false,
+      "enabled": false
+    },
+    {
+      "name": "Fast Leaf Decay",
+      "slug": "fast-leaf-decay",
+      "type": "mod",
+      "side": "server",
+      "group": "quality-of-life",
+      "required": false
+    },
+    {
+      "name": "EMI - item and recipe browser",
+      "slug": "emi",
+      "type": "mod",
+      "side": "client",
+      "group": "quality-of-life",
+      "required": false
+    },
+    {
+      "name": "Mouse Tweaks",
+      "slug": "mouse-tweaks",
+      "type": "mod",
+      "side": "client",
+      "group": "quality-of-life",
+      "required": false
+    },
+    {
+      "name": "Immersive Aircraft",
+      "slug": "immersive-aircraft",
+      "type": "mod",
+      "side": "both",
+      "group": "travel",
+      "required": false
+    },
+    {
+      "name": "Small Ships",
+      "slug": "small-ships",
+      "type": "mod",
+      "side": "both",
+      "group": "travel",
+      "required": false
+    },
+    {
+      "name": "Traveler's Backpack",
+      "slug": "travelersbackpack",
+      "type": "mod",
+      "side": "both",
+      "group": "travel",
+      "required": false
+    },
+    {
+      "name": "Deeper and Darker (new dimension - later)",
+      "slug": "deeperdarker",
+      "type": "mod",
+      "side": "both",
+      "group": "optional",
+      "required": false,
+      "enabled": false
+    },
+    {
+      "name": "AdventureZ (extra bosses - later)",
+      "slug": "adventurez",
+      "type": "mod",
+      "side": "both",
+      "group": "optional",
+      "required": false,
+      "enabled": false
+    },
+    {
+      "name": "ChoiceTheorem's Overhauled Village (alternate to T&T)",
+      "slug": "ct-overhaul-village",
+      "type": "mod",
+      "side": "server",
+      "group": "optional",
+      "required": false,
+      "enabled": false
+    },
+    {
+      "name": "YUNG's Better End Island (changes dragon encounter)",
+      "slug": "yungs-better-end-island",
+      "type": "mod",
+      "side": "server",
+      "group": "optional",
+      "required": false,
+      "enabled": false
+    },
+    {
+      "name": "Mob AI Tweaks (harder fights)",
+      "slug": "mob-ai-tweaks",
+      "type": "mod",
+      "side": "both",
+      "group": "optional",
+      "required": false,
+      "enabled": false
     }
   ]
 }

@@ -119,3 +119,13 @@ If you want a *single server-pushed ZIP*, read [`resourcepacks/README.md`](resou
 - Keep Crafty credentials, server backups and admin commands private. Port-forward only what is necessary.
 - **New mod list = fresh test world first.** Launch once, explore, generate new chunks, test multiple player logins, animal animations, dungeon loot, and check log for Fabric mixin errors before migrating a real save.
 - The experimental EggMorph alpha may mishandle modded entities; don't use its current build on your production world until that is tested separately.
+
+## Adventure Pack 0.5.0-alpha changes
+
+**Additional content:** Dungeons and Taverns; Structory / Towers; Moog's Voyager, Nether and End Structures; Tidal Towns; extra YUNG landmarks; Incendium, Nullscape, Farmer's Delight, Supplementaries / Amendments, More Mobs, Lootr, new travel tools, and more. See `../pack/ADVENTURE_MODS.md`.
+
+**For a new world:** import a fresh **Create Server ZIP** with the same pack lock as your client launcher. These structure and biome mods generate mostly in **new chunks**. Keep the old server as a backup until the new one actually boots, checks all dependency requirements, and a player can explore. Pre-generating a modest radius with Chunky after startup can reduce travel-time lag; do not attempt unlimited chunk generation.
+
+**Critical dependencies:** the server must contain `fabric-language-kotlin` and `simply-tooltips` for the current mod set, even if a Modrinth project labels a library as primarily client-side. Run `update_pack.cmd` so the pinned lock contains these and `moogs-structure-lib` / `moonlight`. These are not fixes for using an outdated Fabric Loader.
+
+**Server performance:** start by testing with 6 GB RAM only if the Debian host can spare it; lower render/simulation distance if generation stutters. Monitor TPS and heap usage while exploring. Some structures may overlap; adjust structure spawn rates before opening the permanent world.
