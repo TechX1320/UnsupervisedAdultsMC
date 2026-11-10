@@ -24,7 +24,12 @@ echo Step 1 of 2: Pin 1.21.1 Fabric mod versions and dependencies...
 if errorlevel 1 goto :error
 echo.
 echo Step 2 of 2: Download verified server JARs and build Crafty import ZIP...
-%PYCMD% tools\create_crafty_server.py
+echo Check your Crafty instance configuration for its assigned TCP server port.
+echo If another server uses port 25565, do NOT reuse it.
+set "CRAFTY_PORT="
+set /p "CRAFTY_PORT=Enter Crafty's port for Unsupervised SMP: "
+if not defined CRAFTY_PORT goto :error
+%PYCMD% tools\create_crafty_server.py --port "%CRAFTY_PORT%"
 if errorlevel 1 goto :error
 echo.
 echo SUCCESS. Mods are in "Server Setup\mods".

@@ -91,6 +91,31 @@ class CraftyZipTests(unittest.TestCase):
                 fetch_fabric=lambda *args: self.fail("existing fabric jar should be reused"),
                 fetch_mod=lambda *args: self.fail("already verified mod should be reused"))
 
+    def test_configurable_port_is_written_to_zip_and_import_instructions(self):
+        with tempfile.TemporaryDirectory() as td:
+            cat, lock, content = self.setup()
+            archive = ua_server.build_server_zip(
+                Path(td), cat, lock, status=lambda *_: None,
+                server_port=25579, fetch_fabric=self.fake_fabric,
+                fetch_mod=lambda url, dest, hashes: Path(dest).write_bytes(
+                    content[url.rsplit("/", 1)[-1]]),
+            )
+            self.assertIn("port-25579.zip", archive.name)
+            with zipfile.ZipFile(archive) as z:
+                props = z.read("server.properties").decode()
+                self.assertIn("server-port=25579\n", props)
+                self.assertIn("online-mode=true", props)
+                self.assertIn("white-list=true", props)
+                self.assertIn("port: 25579", z.read("CRAFTY-IMPORT.txt").decode())
+
+    def test_invalid_ports_rejected_before_download(self):
+        cat, lock, content = self.setup()
+        for invalid in (0, -1, 65536, 25565.0, "25565", True):
+            with self.subTest(port=invalid):
+                with tempfile.TemporaryDirectory() as td:
+                    with self.assertRaises(ValueError):
+                        ua_server.build_server_zip(Path(td), cat, lock, server_port=invalid)
+
     def test_old_01614_server_launcher_cache_is_replaced_on_version_change(self):
         with tempfile.TemporaryDirectory() as td:
             cat, lock, content = self.setup()

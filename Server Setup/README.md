@@ -2,6 +2,18 @@
 
 # UNSUPERVISED SMP — server setup
 
+## Troubleshooting: 2026-11-10 first Crafty startup
+
+**The latest supplied log reached `Starting Minecraft server on *:25565` and failed with `Address already in use`.** The immediate startup blocker is a port collision, **not missing Simply Tooltips**. The same log shows `simplytooltips 0.1.5` loaded and its config initialized. Before changing the modpack:
+
+1. Stop this instance. Look in Crafty at the server ports assigned to your **other running servers**. Choose an unused TCP port for Unsupervised SMP (and ensure it is exposed/mapped in your Docker/CasaOS configuration if applicable).
+2. For an **existing** server, edit its `server.properties` and set `server-port` to the chosen port. Set the **same port** in Crafty's server configuration. Do not replace the world or reinstall mods for a port collision.
+3. For a **new ZIP**, click **CREATE SERVER ZIP** in the custom launcher and enter the actual Crafty server port when prompted, or run `tools/create_crafty_server.py --port <PORT>` on the owner PC. The ZIP filename and `server.properties` both include that port.
+4. Use **Java 21** to match Minecraft 1.21.1 and keep the Fabric Loader at `0.19.5` on both sides. Back up worlds before changing mods.
+
+**Not fatal in that log:** `No data fixer registered` lines are emitted by several mods and do not explain the port bind failure. The missing **REI**, **Mod Menu**, **Oracle Index**, and **C2ME** are all **recommendations**. The pack already includes **EMI** on clients; REI and Mod Menu should not be installed on dedicated servers. C2ME changes core worldgen performance and should not be added until the pack is stable. Oracle Index is optional for Simply Swords. There is also a Moonlight `fabric:false` condition error and ResourcefulLib's `/home/crafty` cache access warning; those warrant investigation if they recur once the port is fixed, but they did not stop the server from reaching its network bind step.
+
+
 **Theme:** An exploration-first survival world for the Unsupervised Adults crew: *questionable decisions, beautiful wilderness, improbable pets, and dangerous group expeditions*. Minecraft **Java 1.21.1 + Fabric**. This guide is for the **server owner only**. Friends need only `UnsupervisedAdultsMC.exe`; they never need Crafty.
 
 ## What is in this folder?

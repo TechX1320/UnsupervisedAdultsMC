@@ -2,6 +2,8 @@
 # A copy is generated as server.properties at the root of the new Crafty ZIP.
 # Add/change these inside Crafty; do not blindly replace a working server.properties.
 # Use Fabric server Minecraft 1.21.1, Java 21.
+# IMPORTANT: Use the actual FREE port allocated to this instance in Crafty.
+# 25565 is only a conventional default and will conflict if another server uses it.
 server-port=25565
 level-name=UnsupervisedSMP
 motd=Unsupervised SMP | Exploration, Chaos, Questionable Decisions

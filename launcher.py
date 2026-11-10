@@ -11,7 +11,7 @@ from pathlib import Path
 import queue
 import threading
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import messagebox, simpledialog, ttk
 import webbrowser
 
 import ua_core as core
@@ -287,21 +287,43 @@ class Launcher:
         return "MINECRAFT LAUNCH REQUESTED"
 
     def create_server_click(self):
-        """Owner-only convenience button; it never contacts Crafty directly."""
-        self._run(self._create_server_zip)
+        """Owner-only ZIP builder; port must match Crafty's selected server port."""
+        if self.busy:
+            return
+        remembered = self.settings.get("crafty_server_port")
+        if isinstance(remembered, bool) or not isinstance(remembered, int) or not 1 <= remembered <= 65535:
+            remembered = 25566  # Suggest an alternative; NEVER assume it is actually free.
+        port = simpledialog.askinteger(
+            "Unsupervised SMP - Crafty Server Port",
+            "Which port will Crafty use for Unsupervised SMP?\n"
+            "Check Crafty's assigned port first. 25565 is already in use on your host.\n"
+            "The ZIP and Crafty configuration must use the SAME port.",
+            initialvalue=remembered, minvalue=1, maxvalue=65535, parent=self.window,
+        )
+        if port is None:
+            return
+        self.settings["crafty_server_port"] = port
+        try:
+            self.settings_path.write_text(json.dumps(self.settings, indent=2) + "\n", encoding="utf-8")
+        except OSError as exc:
+            messagebox.showerror("Cannot save Crafty port", str(exc))
+            return
+        self._run(lambda: self._create_server_zip(port))
 
-    def _create_server_zip(self) -> str:
+    def _create_server_zip(self, port: int) -> str:
         status = lambda message: self._emit("log", message)
         catalog = core.get_remote_catalog(status)
         lock = core.load_lock(catalog, self.app_dir, status)
         archive = ua_server.build_server_zip(
             self.app_dir, catalog, lock, status=status,
             progress=lambda fraction: self._emit("progress", fraction),
+            server_port=port,
         )
         self._emit("notice", "Crafty server ZIP created!\n\n"
                    + str(archive) + "\n\n"
                    "In Crafty: Create New Server > Upload Zip Archive. "
                    "Choose the ZIP root and fabric-server-launch.jar as the executable. "
+                   f"Set Crafty's Server Port to {port}, matching the ZIP's server.properties. "
                    "Use Java 21. Read CRAFTY-IMPORT.txt before starting.")
         if os.name == "nt":
             try:

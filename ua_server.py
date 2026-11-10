@@ -85,9 +85,15 @@ def download_fabric_jar(url: str, target: Path) -> None:
         temp.unlink(missing_ok=True)
 
 
+def validate_server_port(port: int) -> int:
+    """Validate the actual listening port selected in Crafty, not the client address."""
+    if isinstance(port, bool) or not isinstance(port, int) or not 1 <= port <= 65535:
+        raise ValueError("Crafty server port must be a whole number from 1 to 65535")
+    return port
+
+
 def default_server_properties(port: int = 25565) -> str:
-    if not 1 <= int(port) <= 65535:
-        raise ValueError("Invalid server port")
+    port = validate_server_port(port)
     return ("# Unsupervised SMP - edit in Crafty after importing if necessary.\n"
             "# Java 21, Minecraft 1.21.1, Fabric server.\n"
             "level-name=UnsupervisedSMP\n"
@@ -111,13 +117,15 @@ def _server_mods(lock: dict) -> list[dict]:
 
 
 def build_server_zip(root: Path, catalog: dict, lock: dict, status=print,
-                     progress=None, fetch_mod=None, fetch_fabric=None) -> Path:
+                     progress=None, fetch_mod=None, fetch_fabric=None,
+                     server_port: int = 25565) -> Path:
     """Create a root-level Fabric 1.21.1 Crafty import ZIP beside the launcher.
 
     Uses previously verified mod jars whenever possible. Does not include extra
     unlisted jars, and never deletes manually installed files. Required failures
     abort before publishing the archive; optional failures are reported.
     """
+    server_port = validate_server_port(server_port)
     root = Path(root)
     core.check_catalog(catalog)
     core.validate_lock(lock, catalog)
@@ -219,12 +227,16 @@ def build_server_zip(root: Path, catalog: dict, lock: dict, status=print,
         "UNSUPERVISED SMP / CRAFTY ZIP IMPORT\n"
         "================================\n"
         "Minecraft: 1.21.1 | Fabric Loader: " + catalog["fabric_loader_version"] + " | Java: 21\n"
-        "Pack version: " + str(lock["pack_version"]) + "\n\n"
+        "Pack version: " + str(lock["pack_version"]) + "\n"
+        "Configured server-port: " + str(server_port) + "\n"
+        "IMPORTANT: Match this port to Crafty's allocated/exposed server port.\n"
+        "If another server already uses 25565, choose a different available port.\n\n"
         "1. Crafty > Create New Server > Upload Zip Archive > choose this ZIP.\n"
         "2. Select the ZIP root as the server root (not a nested folder).\n"
         "3. Set server executable to fabric-server-launch.jar.\n"
         "4. Use Java 21 and execution command: java -Xms2G -Xmx6G -jar fabric-server-launch.jar nogui\n"
-        "5. Review server.properties port, confirm Minecraft's EULA through Crafty on first start.\n"
+        "5. In Crafty, set Server Port to " + str(server_port) + "; confirm server.properties matches.\n"
+        "   Confirm Minecraft's EULA through Crafty on first start.\n"
         "6. Add player accounts in Crafty console: whitelist add PlayerName\n"
         "7. Keep online-mode=true, white-list=true, enforce-whitelist=true.\n\n"
         "This is a NEW server package. No world, EULA acceptance, or credentials are included.\n"
@@ -241,7 +253,7 @@ def build_server_zip(root: Path, catalog: dict, lock: dict, status=print,
     if not missing_text:
         missing_text = "No missing server mods were reported.\n"
 
-    filename = f"UnsupervisedSMP-Crafty-{lock['pack_version']}.zip"
+    filename = f"UnsupervisedSMP-Crafty-{lock['pack_version']}-port-{server_port}.zip"
     output = setup / filename
     temp_zip = output.with_suffix(output.suffix + ".tmp")
     temp_zip.unlink(missing_ok=True)
@@ -254,7 +266,7 @@ def build_server_zip(root: Path, catalog: dict, lock: dict, status=print,
                 if not core.matches(jar, entry["hashes"]):
                     raise ServerBuildError("Cached JAR changed during packaging: " + basename)
                 bundle.write(jar, "mods/" + basename)
-            bundle.writestr("server.properties", default_server_properties())
+            bundle.writestr("server.properties", default_server_properties(server_port))
             bundle.writestr("CRAFTY-IMPORT.txt", import_text)
             bundle.writestr("UNAVAILABLE-MODS.txt", missing_text)
         temp_zip.replace(output)
