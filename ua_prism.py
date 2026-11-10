@@ -103,6 +103,12 @@ def ensure_instance(root: Path, catalog: dict) -> Path:
             "name=Unsupervised SMP\niconKey=default\n",
             encoding="utf-8",
         )
+    elif cfg.is_file():
+        # Rename only the old default title; keep players' custom names intact.
+        old_cfg = cfg.read_text(encoding="utf-8")
+        if "name=Unsupervised Adults SMP\n" in old_cfg:
+            cfg.write_text(old_cfg.replace("name=Unsupervised Adults SMP\n",
+                                           "name=Unsupervised SMP\n"), encoding="utf-8")
     if not meta.is_file():
         meta.write_text(json.dumps({
             "formatVersion": 1,

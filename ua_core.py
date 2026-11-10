@@ -121,13 +121,32 @@ def resolve_catalog(catalog: dict, status=print, api=get_json) -> dict:
     minecraft = catalog["minecraft_version"]
     files: list[dict] = []
     skipped: list[dict] = []
-    resolved_ids: set[str] = set()
+    resolved_ids: dict[str, dict] = {}
+    aliases: dict[str, str] = {}
+    environments: dict[str, str] = {}
     outcomes: dict[str, bool] = {}
     visiting: set[str] = set()
+
+    def side_for_env(requested: str, env: str) -> str:
+        if env in ("server_only", "dedicated_server_only"):
+            return "server"
+        if env in ("client_only", "singleplayer_only"):
+            return "client"
+        return requested
+
+    def promote(entry: dict, requested_side: str, required: bool) -> None:
+        # A library can first be discovered by a client-only mod, then required
+        # by a shared/server mod. Preserve both use cases in the lock file.
+        old = entry["side"]
+        entry["side"] = old if old == requested_side else "both"
+        entry["required"] = entry.get("required", False) or required
 
     def resolve(name: str, project: str, kind: str, side: str, required: bool, *, version_id: str | None = None) -> bool:
         key = version_id or project
         if key in outcomes:
+            if outcomes[key] and key in aliases:
+                ident = aliases[key]
+                promote(resolved_ids[ident], side_for_env(side, environments[ident]), required)
             return outcomes[key]
         if key in visiting:
             return True  # cycle guard for unusual dependency metadata
@@ -142,6 +161,8 @@ def resolve_catalog(catalog: dict, status=print, api=get_json) -> dict:
                 v = _select_version(versions, kind, minecraft)
             ident = v.get("project_id", project)
             if ident in resolved_ids:
+                promote(resolved_ids[ident], side_for_env(side, environments[ident]), required)
+                aliases[key] = ident
                 outcomes[key] = True
                 return True
             asset = _chosen_file(v, kind)
@@ -183,7 +204,9 @@ def resolve_catalog(catalog: dict, status=print, api=get_json) -> dict:
                 "required": required
             }
             files.append(entry)
-            resolved_ids.add(ident)
+            resolved_ids[ident] = entry
+            environments[ident] = env
+            aliases[key] = ident
             outcomes[key] = True
             status(f"Found {name} ({entry['version']})")
             return True

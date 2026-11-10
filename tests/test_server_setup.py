@@ -113,5 +113,33 @@ class ResourcePackMergeTests(unittest.TestCase):
                 merge.merge(Path(td) / 'not-created', Path(td) / 'out', status=lambda *_: None)
 
 
+class SharedDependencyTests(unittest.TestCase):
+    def test_shared_dependency_is_not_left_client_only(self):
+        # Models a mod library first requested by client-only mod, then by
+        # a shared mod. Previously that left the library missing from Crafty.
+        catalog = {'schema': 1, 'pack_version': 'dep-test',
+                   'minecraft_version': '1.21.1', 'fabric_loader_version': '0.16.14',
+                   'mods': [
+                       {'name': 'ClientFX', 'slug': 'clientfx', 'type': 'mod', 'side': 'client'},
+                       {'name': 'Gameplay', 'slug': 'gameplay', 'type': 'mod', 'side': 'both', 'required': True},
+                   ]}
+        def api(url):
+            ident = url.split('/project/')[1].split('/')[0] if '/project/' in url else url.rsplit('/',1)[-1]
+            pid = {'clientfx': 'client', 'gameplay': 'gameplay', 'dep-project': 'shared'}[ident]
+            deps = [{'dependency_type': 'required', 'project_id': 'dep-project'}] if pid != 'shared' else []
+            return [{
+                'id': ident + '-v', 'project_id': pid, 'version_number': '1.0',
+                'version_type': 'release', 'game_versions': ['1.21.1'],
+                'loaders': ['fabric'], 'date_published': '2026-01-01',
+                'dependencies': deps,
+                'files': [{'filename': pid + '.jar', 'url': 'https://cdn.modrinth.com/data/' + pid + '.jar',
+                           'hashes': {'sha256': 'a'*64}, 'primary': True}]
+            }]
+        lock = core.resolve_catalog(catalog, status=lambda *_: None, api=api)
+        dep = next(x for x in lock['files'] if x.get('project_id') == 'shared')
+        self.assertEqual(dep['side'], 'both')
+        self.assertTrue(dep['required'])
+
 if __name__ == '__main__':
     unittest.main()
+
