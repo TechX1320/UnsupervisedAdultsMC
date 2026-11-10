@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "pack_version": "0.5.3-alpha",
+  "pack_version": "0.6.0-alpha",
   "name": "Unsupervised SMP",
   "minecraft_version": "1.21.1",
   "fabric_loader_version": "0.19.5",
@@ -862,6 +862,100 @@
       "side": "both",
       "group": "optional",
       "required": false,
+      "enabled": false
+    },
+    {
+      "name": "Macaw's Holidays",
+      "slug": "macaws-holidays",
+      "type": "mod",
+      "side": "both",
+      "group": "holiday",
+      "required": false,
+      "note": "Christmas trees, 250+ lights and decorations, with Halloween decorations for later events."
+    },
+    {
+      "name": "Snowy Spirit",
+      "slug": "snowy-spirit",
+      "type": "mod",
+      "side": "both",
+      "group": "holiday",
+      "required": false,
+      "note": "Sleds, wreaths and winter gifts; uses existing Moonlight and Fabric API."
+    },
+    {
+      "name": "Winterly",
+      "slug": "winterly",
+      "type": "mod",
+      "side": "both",
+      "group": "holiday",
+      "required": false,
+      "note": "Santa hats, cozy winter decor and presents."
+    },
+    {
+      "name": "Festivities",
+      "slug": "festivities",
+      "type": "mod",
+      "side": "both",
+      "group": "holiday",
+      "required": false,
+      "note": "December mob costumes, gift-giving villagers, festive food and a magic snowglobe."
+    },
+    {
+      "name": "Gingerbread Houses",
+      "slug": "gingerbread-houses",
+      "type": "mod",
+      "side": "both",
+      "group": "holiday",
+      "required": false,
+      "note": "Gingerbread cottages and Christmas trees in new snowy chunks; reindeer, gifts and Krampus on supported builds."
+    },
+    {
+      "name": "Big Gift Snowglobe",
+      "slug": "big-gift-snowglobe",
+      "type": "mod",
+      "side": "both",
+      "group": "holiday",
+      "required": false,
+      "note": "Snowy-biome landmark with gift loot and a Stray mini-dungeon; new chunks only."
+    },
+    {
+      "name": "Rainbow Christmas",
+      "slug": "rainbow-christmas",
+      "type": "mod",
+      "side": "both",
+      "group": "holiday",
+      "required": false,
+      "note": "Optional candy blocks, gingerbread and lights; overlaps several core holiday decorations.",
+      "enabled": false
+    },
+    {
+      "name": "DecorationX: Christmas",
+      "slug": "decorationx-christmas",
+      "type": "mod",
+      "side": "both",
+      "group": "holiday",
+      "required": false,
+      "note": "Optional snowmen, a winter boss, snowball siege gear and 235 decorative blocks; newly released, test separately.",
+      "enabled": false
+    },
+    {
+      "name": "Seasonal Additions",
+      "slug": "seasonal-additions",
+      "type": "mod",
+      "side": "both",
+      "group": "holiday",
+      "required": false,
+      "note": "Optional additional Christmas chests and winter cosmetics; overlapping systems.",
+      "enabled": false
+    },
+    {
+      "name": "Season's Greetings",
+      "slug": "seasons-greetings",
+      "type": "mod",
+      "side": "both",
+      "group": "holiday",
+      "required": false,
+      "note": "Optional presents, cocoa and snow golem decorations; 1.21.1 marked maintenance.",
       "enabled": false
     }
   ]

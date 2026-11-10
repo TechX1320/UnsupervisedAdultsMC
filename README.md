@@ -1,5 +1,12 @@
 # Unsupervised Adults MC
 
+## 0.6.0-alpha - Merry Mayhem Christmas update
+
+Six Minecraft 1.21.1 Fabric holiday mods are now enabled: **Macaw's Holidays**, **Snowy Spirit**, **Winterly**, **Festivities**, **Gingerbread Houses**, and **Big Gift Snowglobe**. Four alternatives are documented but disabled until tested. They install on both client and server. See [Holiday Mod Guide](pack/HOLIDAY_MODS.md).
+
+This changes the catalog, not your existing Crafty installation. Run `update_pack.cmd` and publish the matching `pack/pack-lock.json` before inviting players; do not overwrite the existing Crafty world with a full server ZIP. Holiday structures appear only in new chunks. Keep any world-content mods installed after December to protect decorated builds.
+
+
 ## 0.5.3-alpha - item UI and Distant Horizons stability
 
 - Removed the **EMI + REI duplicate item browser** from the curated setup. EMI remains; the launcher now moves manually installed REI JARs into a *reversible backup*, not the Trash.

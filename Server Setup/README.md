@@ -1,3 +1,7 @@
+## 0.6.0-alpha - Christmas mods
+
+Unsupervised SMP's **Merry Mayhem** catalog now includes six enabled, both-side Christmas/winter mods. For an **existing Crafty world**, stop the server and back it up, generate/download the updated server JARs using `build_server.cmd`, and add the new/updated JARs to its `mods/` folder. **Do not import a new ZIP over the existing server.** First run `update_pack.cmd` at the repo root and publish `pack/pack-lock.json` to keep client/server versions aligned. New snowy structures spawn only in newly generated chunks. Details: [Holiday Mod Guide](../pack/HOLIDAY_MODS.md).
+
 ## 0.5.3-alpha - item UI and Distant Horizons stability
 
 - Removed the **EMI + REI duplicate item browser** from the curated setup. EMI remains; the launcher now moves manually installed REI JARs into a *reversible backup*, not the Trash.

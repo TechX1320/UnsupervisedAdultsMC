@@ -15,7 +15,7 @@ class AdventurePackCatalogTests(unittest.TestCase):
         core.check_catalog(p)
         self.assertEqual(p['minecraft_version'], '1.21.1')
         self.assertEqual(p['fabric_loader_version'], '0.19.5')
-        self.assertEqual(p['pack_version'], '0.5.3-alpha')
+        self.assertEqual(p['pack_version'], '0.6.0-alpha')
 
     def test_eggmorph_alpha4_native_spawn_egg_is_sha_pinned_and_optional(self):
         pack = self.get_catalog()
