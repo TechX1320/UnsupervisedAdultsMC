@@ -90,8 +90,13 @@ def ensure_prism(root: Path, status=print, fetch=core.download_verified) -> Path
     return exe
 
 
-def ensure_instance(root: Path, catalog: dict) -> Path:
-    """Create (or repair) only the metadata of our dedicated Prism instance."""
+def ensure_instance(root: Path, catalog: dict, status=print) -> Path:
+    """Create/repair the SMP instance and upgrade its Fabric component in place.
+
+    Don't replace the complete Prism profile, remove additional components, or
+    touch settings, saves, resource packs, or any other player-owned files.
+    Close Prism before syncing: a running Prism can rewrite instance metadata.
+    """
     core.check_catalog(catalog)
     instance = data_dir(root) / "instances" / core.PACK_ID
     instance.mkdir(parents=True, exist_ok=True)
@@ -103,20 +108,68 @@ def ensure_instance(root: Path, catalog: dict) -> Path:
             "name=Unsupervised SMP\niconKey=default\n",
             encoding="utf-8",
         )
-    elif cfg.is_file():
+    else:
         # Rename only the old default title; keep players' custom names intact.
         old_cfg = cfg.read_text(encoding="utf-8")
         if "name=Unsupervised Adults SMP\n" in old_cfg:
             cfg.write_text(old_cfg.replace("name=Unsupervised Adults SMP\n",
                                            "name=Unsupervised SMP\n"), encoding="utf-8")
+
     if not meta.is_file():
-        meta.write_text(json.dumps({
+        profile = {
             "formatVersion": 1,
             "components": [
                 {"uid": "net.minecraft", "version": catalog["minecraft_version"], "important": True},
                 {"uid": "net.fabricmc.fabric-loader", "version": catalog["fabric_loader_version"]},
             ],
-        }, indent=2) + "\n", encoding="utf-8")
+        }
+        changed = True
+    else:
+        try:
+            profile = json.loads(meta.read_text(encoding="utf-8"))
+            if not isinstance(profile, dict) or not isinstance(profile.get("components"), list):
+                raise ValueError("Missing components list")
+            if not all(isinstance(entry, dict) for entry in profile["components"]):
+                raise ValueError("Invalid component metadata")
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            raise ValueError(
+                "Existing Prism instance metadata is invalid. Back up the "
+                "instance and repair it in Prism (Edit > Version); "
+                "your worlds and files have not been deleted."
+            ) from exc
+        changed = False
+
+    # Modify only the required components, retaining user-provided metadata and
+    # components (e.g. patches and custom packs) rather than resetting the instance.
+    for uid, wanted in (
+        ("net.minecraft", catalog["minecraft_version"]),
+        ("net.fabricmc.fabric-loader", catalog["fabric_loader_version"]),
+    ):
+        matches = [entry for entry in profile["components"] if entry.get("uid") == uid]
+        if len(matches) > 1:
+            raise ValueError(f"Prism has duplicate component {uid}. Repair the instance in Prism.")
+        if matches:
+            component = matches[0]
+            prior = component.get("version")
+            if prior != wanted:
+                component["version"] = wanted
+                changed = True
+                status(f"Updated Prism {uid} from {prior or 'unknown'} to {wanted}.")
+        else:
+            profile["components"].append({"uid": uid, "version": wanted,
+                                          **({"important": True} if uid == "net.minecraft" else {})})
+            changed = True
+            status(f"Added missing Prism {uid} {wanted}.")
+
+    if changed:
+        # Atomic replacement avoids leaving an invalid JSON instance after a crash.
+        temp = meta.with_name("mmc-pack.json.ua-tmp")
+        try:
+            temp.write_text(json.dumps(profile, indent=2) + "\n", encoding="utf-8")
+            temp.replace(meta)
+        finally:
+            temp.unlink(missing_ok=True)
+
     (instance / ".minecraft").mkdir(exist_ok=True)
     return instance
 

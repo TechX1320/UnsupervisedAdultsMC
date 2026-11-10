@@ -1,3 +1,5 @@
+> **Fabric Loader requirement:** The Unsupervised SMP modpack now requires **Fabric Loader 0.19.5 or newer** for both client and server. The previous 0.16.14 launcher is incompatible with newer Kotlin/Puzzles Lib/Naturalist versions. Re-create the server ZIP (or update Fabric on an existing stopped/backed-up server) and keep the client and server on the same 1.21.1 pack.
+
 # UNSUPERVISED SMP — server setup
 
 **Theme:** An exploration-first survival world for the Unsupervised Adults crew: *questionable decisions, beautiful wilderness, improbable pets, and dangerous group expeditions*. Minecraft **Java 1.21.1 + Fabric**. This guide is for the **server owner only**. Friends need only `UnsupervisedAdultsMC.exe`; they never need Crafty.
@@ -34,6 +36,19 @@ The repository does **not** contain downloaded third-party JAR binaries. The gen
 **EggMorph:** the current URL points to your *private* EggMorph GitHub release; anonymous requests fail. The built ZIP will report it as optional/missing. As the repo owner, you can download `eggmorph-0.2.0-alpha.jar` while signed in and put it in the generated `Server Setup/mods/` folder before clicking the button again; if the binary SHA-256 matches the catalog, the ZIP builder will include it **without attempting the private download**. Players still need the JAR: for automatic updates you'll need a **publicly accessible compiled JAR** and a new catalog URL + lock. Do not give friends a GitHub access token. EggMorph remains an untested alpha; leave it off the public SMP until verified.
 
 **Server resource packs:** the server supports one `resource-pack=` URL, but client-side packs can be layered and do not need to be merged. The optional resource-pack merge tool is separate and only for assets you have permission to redistribute.
+
+## URGENT: Fix existing Crafty server using Fabric Loader 0.16.14
+
+If the Crafty console reports incompatible mods requiring **Fabric Loader 0.19.5+**, **you do not need to re-import or delete the world**. Updating only the client's Prism instance will not fix the server.
+
+1. In Crafty, **Stop** the affected server and make a backup of the entire server directory, especially `world/`, `mods/`, `config/`, `server.properties`, and whitelist files.
+2. Download the [official Fabric 1.21.1 / Loader 0.19.5 server launcher](https://meta.fabricmc.net/v2/versions/loader/1.21.1/0.19.5/1.1.2/server/jar) on your computer. Rename the downloaded `.jar` to **`fabric-server-launch.jar`**.
+3. In **Crafty → your server → Files**, replace the existing root-level `fabric-server-launch.jar` with the new JAR. If Crafty uses a different server JAR filename, either replace that filename or update the server's launch command to use the name above. **Do not touch `mods/` or `world/` to perform this loader-only fix.**
+4. Check that the launch command uses Java **21** and the correct file: `java -Xms2G -Xmx6G -jar fabric-server-launch.jar nogui` (adjust RAM to your server's capacity).
+5. Start it and verify the console reports **Fabric Loader 0.19.5**. If the log still shows `0.16.14`, check Crafty's selected launch JAR / start command. If Fabric reports old cached-loader/classloader errors, stop the server and remove only the server's generated **`.fabric/` cache directory** (not the worlds or mods), then restart; Fabric will regenerate it.
+6. On the client, update Prism's loader to 0.19.5 or rebuild/run our launcher after this commit. Re-run `update_pack.cmd` and publish the new `pack/pack-lock.json` once the server and client boot cleanly.
+
+For **new** Crafty servers, rebuild **CREATE SERVER ZIP** using the latest launcher and catalog (`0.4.1-alpha`). The ZIP builder now checks its Fabric launcher cache against the full pinned version URL and SHA-256, so an old 0.16.14 JAR cannot be silently reused.
 
 ## Alternative: updating a Fabric server that already exists in Crafty
 

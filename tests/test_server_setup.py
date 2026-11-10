@@ -17,7 +17,7 @@ class ServerExportTests(unittest.TestCase):
         (root / 'pack').mkdir()
         (root / 'Server Setup' / 'mods').mkdir(parents=True)
         catalog = {'schema': 1, 'pack_version': 'test', 'minecraft_version': '1.21.1',
-                   'fabric_loader_version': '0.16.14', 'mods': []}
+                   'fabric_loader_version': '0.19.5', 'mods': []}
         shared = b'shared-jar'
         server = b'server-jar'
         items = [
@@ -29,7 +29,7 @@ class ServerExportTests(unittest.TestCase):
              'url': 'https://cdn.modrinth.com/data/visual', 'hashes': {'sha256': 'a'*64}, 'required': True},
         ]
         lock = {'schema': 1, 'pack_version': 'test', 'minecraft_version': '1.21.1',
-                'fabric_loader_version': '0.16.14', 'catalog_sha256': core.canonical_sha(catalog),
+                'fabric_loader_version': '0.19.5', 'catalog_sha256': core.canonical_sha(catalog),
                 'files': items, 'skipped': []}
         (root / 'pack' / 'catalog.json').write_text(json.dumps(catalog))
         (root / 'pack' / 'pack-lock.json').write_text(json.dumps(lock))
@@ -118,7 +118,7 @@ class SharedDependencyTests(unittest.TestCase):
         # Models a mod library first requested by client-only mod, then by
         # a shared mod. Previously that left the library missing from Crafty.
         catalog = {'schema': 1, 'pack_version': 'dep-test',
-                   'minecraft_version': '1.21.1', 'fabric_loader_version': '0.16.14',
+                   'minecraft_version': '1.21.1', 'fabric_loader_version': '0.19.5',
                    'mods': [
                        {'name': 'ClientFX', 'slug': 'clientfx', 'type': 'mod', 'side': 'client'},
                        {'name': 'Gameplay', 'slug': 'gameplay', 'type': 'mod', 'side': 'both', 'required': True},

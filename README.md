@@ -4,6 +4,8 @@
 
 **Alpha**: The Prism download/hash/instance/command flows have unit tests, but the executable and live Minecraft login/install must be tested on Windows before sending it to friends. No GitHub Actions are used.
 
+**Fabric Loader compatibility (0.4.1-alpha):** The current adventure modpack requires **Fabric Loader 0.19.5+**, not the old 0.16.14. The launcher now upgrades the Fabric component of **existing** Prism instances on Play/Check & Repair, while preserving their saves/settings. **Close Prism before clicking Play** so its cached instance settings cannot overwrite the updated version. Run `update_pack.cmd` to refresh `pack/pack-lock.json` and publish it along with the catalog. Rebuild the **Crafty ZIP** so the server has the matching Fabric Loader 0.19.5; the builder now validates its local cached Fabric server JAR version and replaces old binaries. To upgrade an **existing** Crafty instance safely without touching the world, follow `Server Setup/README.md` → **URGENT: Fix existing Crafty server**. An existing Crafty server should be stopped and backed up before updating its Fabric launcher; **do not import the ZIP as a second live server over your world**.
+
 ## For players (no Python or Java installation required)
 
 1. Download `UnsupervisedAdultsMC.exe` from the owner and place it in a writable folder such as `D:\Games\UnsupervisedAdultsMC` (not Program Files).

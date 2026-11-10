@@ -229,7 +229,7 @@ class Launcher:
             status = lambda s: self._emit("log", s)
             exe = prism.ensure_prism(self.app_dir, status)
             catalog = core.get_remote_catalog(status)
-            prism.ensure_instance(self.app_dir, catalog)
+            prism.ensure_instance(self.app_dir, catalog, status)
             status("Opening Prism: Accounts > Add Microsoft account. Close Prism when done.")
             prism.open_prism(self.app_dir, exe)
             return "ACCOUNT SETUP OPENED IN PRISM"
@@ -252,7 +252,7 @@ class Launcher:
         if missing_required:
             raise RuntimeError("Required mods unavailable: " + ", ".join(missing_required) +
                                ". The pack owner must fix the catalog/lock.")
-        instance = prism.ensure_instance(self.app_dir, catalog)
+        instance = prism.ensure_instance(self.app_dir, catalog, status)
         prism.migrate_legacy(self.app_dir, instance, status)
         result = core.install_client(lock, instance, status,
                                      lambda value: self._emit("progress", .08 + value * .9))

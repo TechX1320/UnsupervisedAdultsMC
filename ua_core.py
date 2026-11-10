@@ -66,6 +66,10 @@ def check_catalog(catalog: dict) -> None:
         raise ValueError("Unexpected catalog schema or Minecraft version")
     if not re.fullmatch(r"[0-9]+(?:\.[0-9]+)*", catalog.get("fabric_loader_version", "")):
         raise ValueError("Invalid Fabric Loader version")
+    # The pinned 1.21.1 modpack has Fabric Loader >=0.19.5 dependencies
+    # (notably Fabric Language Kotlin); never silently ship a lower version.
+    if tuple(map(int, catalog["fabric_loader_version"].split("."))) < (0, 19, 5):
+        raise ValueError("Unsupervised SMP requires Fabric Loader 0.19.5 or newer")
     if not isinstance(catalog.get("mods"), list):
         raise ValueError("Catalog mods must be a list")
 

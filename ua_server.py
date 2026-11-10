@@ -142,12 +142,39 @@ def build_server_zip(root: Path, catalog: dict, lock: dict, status=print,
         folder.mkdir(parents=True, exist_ok=True)
 
     launcher = setup / FABRIC_JAR_NAME
+    cache_file = setup / "fabric-server-launch.cache.json"
     url = fabric_server_url(catalog)
-    status("Preparing official Fabric 1.21.1 server launcher...")
-    if not valid_server_jar(launcher):
+    # A runnable JAR alone is insufficient: it may embed a *different* loader.
+    # Earlier builds incorrectly reused the cached 0.16.14 server launcher even
+    # after the catalog was updated. Cache only when both URL and checksum match.
+    cached = False
+    if (not launcher.is_symlink() and not cache_file.is_symlink()
+            and valid_server_jar(launcher) and cache_file.is_file()):
+        try:
+            saved = json.loads(cache_file.read_text(encoding="utf-8"))
+            cached = (saved.get("source_url") == url and
+                      core.matches(launcher, {"sha256": saved.get("sha256", "")}))
+        except (OSError, ValueError, TypeError):
+            pass
+    if not cached:
+        status("Downloading official Fabric Loader " + catalog["fabric_loader_version"] +
+               " server launcher (verifying cached version)...")
+        if launcher.is_symlink() or cache_file.is_symlink():
+            raise ServerBuildError("Refusing a linked Fabric server launcher/cache")
         fetch_fabric(url, launcher)
-    if not valid_server_jar(launcher):
-        raise ServerBuildError("Could not validate Fabric server launcher")
+        if not valid_server_jar(launcher):
+            raise ServerBuildError("Could not validate Fabric server launcher")
+        meta_tmp = cache_file.with_name(cache_file.name + ".tmp")
+        try:
+            meta_tmp.write_text(json.dumps({
+                "source_url": url,
+                "sha256": hashlib.sha256(launcher.read_bytes()).hexdigest(),
+            }, indent=2) + "\n", encoding="utf-8")
+            meta_tmp.replace(cache_file)
+        finally:
+            meta_tmp.unlink(missing_ok=True)
+    else:
+        status("Cached Fabric Loader " + catalog["fabric_loader_version"] + " server launcher verified.")
     if progress:
         progress(.12)
 

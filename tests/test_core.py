@@ -19,7 +19,7 @@ class PackTests(unittest.TestCase):
     def catalog(self):
         return {
             "schema": 1, "pack_version": "test", "minecraft_version": "1.21.1",
-            "fabric_loader_version": "0.16.14", "mods": [
+            "fabric_loader_version": "0.19.5", "mods": [
                 {"name": "Sample", "slug": "sample", "type": "mod", "side": "both", "required": True},
                 {"name": "Gone", "slug": "gone", "type": "mod", "side": "client"},
                 {"name": "Manual", "source": "manual", "type": "mod", "side": "both"},
@@ -97,7 +97,7 @@ class PackTests(unittest.TestCase):
 class PortablePrismTests(unittest.TestCase):
     def catalog(self):
         return {"schema": 1, "minecraft_version": "1.21.1",
-                "fabric_loader_version": "0.16.14", "mods": []}
+                "fabric_loader_version": "0.19.5", "mods": []}
 
     def test_portable_root_for_frozen_executable(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -119,10 +119,59 @@ class PortablePrismTests(unittest.TestCase):
             data = json.loads((instance / "mmc-pack.json").read_text())
             self.assertEqual(data["components"][0]["version"], "1.21.1")
             self.assertEqual(data["components"][1]["uid"], "net.fabricmc.fabric-loader")
-            self.assertEqual(data["components"][1]["version"], "0.16.14")
+            self.assertEqual(data["components"][1]["version"], "0.19.5")
             (instance / "instance.cfg").write_text("user changed")
             prism.ensure_instance(root, self.catalog())
             self.assertEqual((instance / "instance.cfg").read_text(), "user changed")
+
+    def test_existing_prism_instance_upgrades_loader_and_preserves_player_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            old = dict(self.catalog(), fabric_loader_version="0.19.5")
+            instance = prism.ensure_instance(root, old)
+            metadata = instance / "mmc-pack.json"
+            profile = json.loads(metadata.read_text())
+            profile["components"][1]["version"] = "0.16.14"
+            profile["components"][1]["userProperty"] = "keep"
+            profile["components"].append({"uid": "my.custom.component", "version": "1"})
+            profile["notes"] = {"settings": "preserved"}
+            metadata.write_text(json.dumps(profile), encoding="utf-8")
+            save = instance / ".minecraft" / "saves" / "myworld" / "level.dat"
+            save.parent.mkdir(parents=True)
+            save.write_bytes(b"my-test-world")
+            (instance / "instance.cfg").write_text("my custom settings", encoding="utf-8")
+            messages = []
+            prism.ensure_instance(root, self.catalog(), messages.append)
+            upgraded = json.loads(metadata.read_text())
+            loader = next(c for c in upgraded["components"] if c["uid"] == "net.fabricmc.fabric-loader")
+            self.assertEqual(loader["version"], "0.19.5")
+            self.assertEqual(loader["userProperty"], "keep")
+            self.assertIn({"uid": "my.custom.component", "version": "1"}, upgraded["components"])
+            self.assertEqual(upgraded["notes"], {"settings": "preserved"})
+            self.assertEqual(save.read_bytes(), b"my-test-world")
+            self.assertEqual((instance / "instance.cfg").read_text(), "my custom settings")
+            self.assertTrue(any("0.16.14 to 0.19.5" in msg for msg in messages))
+            # Subsequent launch shouldn't rewrite the file unnecessarily.
+            before = metadata.read_bytes()
+            messages.clear()
+            prism.ensure_instance(root, self.catalog(), messages.append)
+            self.assertEqual(metadata.read_bytes(), before)
+            self.assertFalse(messages)
+
+    def test_malformed_prism_metadata_is_not_overwritten(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            instance = prism.ensure_instance(root, self.catalog())
+            meta = instance / "mmc-pack.json"
+            meta.write_text("{bad json", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "Existing Prism instance metadata is invalid"):
+                prism.ensure_instance(root, self.catalog())
+            self.assertEqual(meta.read_text(), "{bad json")
+
+    def test_older_fabric_loader_is_rejected_in_published_catalog(self):
+        old = dict(self.catalog(), fabric_loader_version="0.16.14")
+        with self.assertRaisesRegex(ValueError, "0.19.5 or newer"):
+            core.check_catalog(old)
 
     @staticmethod
     def make_archive(members):

@@ -19,7 +19,7 @@ class CraftyZipTests(unittest.TestCase):
             "name": "Unsupervised SMP",
             "pack_version": "0.4-test",
             "minecraft_version": "1.21.1",
-            "fabric_loader_version": "0.16.14",
+            "fabric_loader_version": "0.19.5",
             "mods": [],
         }
         files = []
@@ -39,7 +39,7 @@ class CraftyZipTests(unittest.TestCase):
             })
         lock = {
             "schema": 1, "pack_version": "0.4-test", "minecraft_version": "1.21.1",
-            "fabric_loader_version": "0.16.14",
+            "fabric_loader_version": "0.19.5",
             "catalog_sha256": core.canonical_sha(catalog),
             "files": files, "skipped": [],
         }
@@ -47,7 +47,7 @@ class CraftyZipTests(unittest.TestCase):
 
     @staticmethod
     def fake_fabric(url, path):
-        assert url == "https://meta.fabricmc.net/v2/versions/loader/1.21.1/0.16.14/1.1.2/server/jar"
+        assert url == "https://meta.fabricmc.net/v2/versions/loader/1.21.1/0.19.5/1.1.2/server/jar"
         with zipfile.ZipFile(path, "w") as jar:
             jar.writestr("META-INF/MANIFEST.MF", "Manifest-Version: 1.0\nMain-Class: net.fabricmc.main.Main\n")
             jar.writestr("net/fabricmc/main/Main.class", b"binary-class")
@@ -90,6 +90,39 @@ class CraftyZipTests(unittest.TestCase):
                 Path(td), cat, lock, status=lambda *_: None,
                 fetch_fabric=lambda *args: self.fail("existing fabric jar should be reused"),
                 fetch_mod=lambda *args: self.fail("already verified mod should be reused"))
+
+    def test_old_01614_server_launcher_cache_is_replaced_on_version_change(self):
+        with tempfile.TemporaryDirectory() as td:
+            cat, lock, content = self.setup()
+            root = Path(td)
+            setup = root / "Server Setup"
+            setup.mkdir()
+            old_jar = setup / ua_server.FABRIC_JAR_NAME
+            with zipfile.ZipFile(old_jar, "w") as jar:
+                jar.writestr("META-INF/MANIFEST.MF", "Manifest-Version: 1.0\nMain-Class: OldLoader\n")
+                jar.writestr("old/loader/Main.class", b"OLD_0.16.14")
+            old_bytes = old_jar.read_bytes()
+            marker = setup / "fabric-server-launch.cache.json"
+            marker.write_text(json.dumps({
+                "source_url": "https://meta.fabricmc.net/v2/versions/loader/1.21.1/0.16.14/1.1.2/server/jar",
+                "sha256": hashlib.sha256(old_bytes).hexdigest(),
+            }), encoding="utf-8")
+            fetched = []
+            def get_fabric(url, dest):
+                fetched.append(url)
+                self.fake_fabric(url, dest)
+            def get_mod(url, dest, hashes):
+                Path(dest).write_bytes(content[url.rsplit("/", 1)[-1]])
+            zip_path = ua_server.build_server_zip(root, cat, lock, status=lambda *_: None,
+                                                   fetch_fabric=get_fabric, fetch_mod=get_mod)
+            self.assertEqual(fetched, [ua_server.fabric_server_url(cat)])
+            with zipfile.ZipFile(zip_path) as z:
+                self.assertNotEqual(z.read(ua_server.FABRIC_JAR_NAME), old_bytes)
+            self.assertIn("/0.19.5/", json.loads(marker.read_text())["source_url"])
+            # The same version reuses the verified cache; no extra downloads.
+            ua_server.build_server_zip(root, cat, lock, status=lambda *_: None,
+                                       fetch_fabric=lambda *args: self.fail("did not reuse valid cache"),
+                                       fetch_mod=lambda *args: self.fail("did not reuse valid mods"))
 
     def test_egg_morph_can_be_owner_provided_locally_without_private_download(self):
         with tempfile.TemporaryDirectory() as td:
